@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 
 @Slf4j
 @Service
@@ -20,6 +22,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+
 
     @Transactional
     //회원가입
@@ -48,14 +51,21 @@ public class UserService {
     }
 
     //로그인
-    public String login(LoginRequest request) {
+    public Map<String, String> login(LoginRequest request) {
         UserPersonalInfo user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
-        // 토큰 생성 후 바로 반환
-        return jwtUtil.generateToken(user.getUserid());
+        String accessToken = jwtUtil.createJwt("access", user.getEmail(), "", 10 * 60 * 1000L);
+        String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), "", 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
+
+        jwtUtil.addRefreshEntity(user.getEmail(), refreshToken, 86400000L);
+
+        return Map.of(
+                "access", accessToken,
+                "refresh", refreshToken
+        );
     }
 
     //사용자 정보 조회

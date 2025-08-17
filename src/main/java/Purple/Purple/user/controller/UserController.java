@@ -1,22 +1,23 @@
 package Purple.Purple.user.controller;
 
 import Purple.Purple.user.dto.*;
-import Purple.Purple.user.repository.UserRepository;
+import Purple.Purple.user.jwt.JwtUtil;
+import Purple.Purple.user.repository.RefreshRepository;
 import Purple.Purple.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -43,6 +44,12 @@ public class UserController {
                 .body(response);
     }
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private RefreshRepository refreshRepository;
+
     @Operation(summary = "로그인", description = "로그인을 처리합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그인 성공"),
@@ -50,11 +57,22 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @PostMapping("/login")
-    public ResponseEntity<Map<String,String>> login(@RequestBody LoginRequest req) {
-        String token = userService.login(req);
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest req, HttpServletResponse response) {
+        Map<String, String> tokens = userService.login(req);
+
+        String accessToken = tokens.get("access");
+        String refreshToken = tokens.get("refresh");
+
+        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(7 * 24 * 60 * 60);
+        response.addCookie(refreshCookie);
+
+
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
-        Map<String,String> body = Map.of("token", token);
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        Map<String,String> body = Map.of("token", accessToken);
         return new ResponseEntity<>(body, headers, HttpStatus.OK);
     }
 
