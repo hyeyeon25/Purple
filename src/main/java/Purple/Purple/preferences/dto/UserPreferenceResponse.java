@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @Schema(description = "성향 조회/응답 DTO")
 public class UserPreferenceResponse {
-    private int userid;
+    private Long userid;
     private int foodPreference;
     private int desertPreference;
     private int culturePreference;
