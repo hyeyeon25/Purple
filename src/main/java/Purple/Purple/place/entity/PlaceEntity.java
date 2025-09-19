@@ -38,15 +38,19 @@ public class PlaceEntity {
     @Column(nullable = false)
     private Double longitude;
 
+    @Builder.Default
     @Column(name = "score_food", nullable = false)
     private Integer scoreFood = 0;
 
+    @Builder.Default
     @Column(name = "score_cafe", nullable = false)
     private Integer scoreCafe = 0;
 
+    @Builder.Default
     @Column(name = "score_activity", nullable = false)
     private Integer scoreActivity = 0;
 
+    @Builder.Default
     @Column(name = "score_culture", nullable = false)
     private Integer scoreCulture = 0;
 
