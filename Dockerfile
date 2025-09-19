@@ -3,8 +3,8 @@
 #  - 소스 코드를 컴파일하고 실행 가능한 .jar 파일로 만드는 단계입니다.
 # =========================================================================
 
-# Java 17(Temurin JDK) 이미지를 'builder'라는 별명으로 사용합니다. (대문자 AS로 문법 경고 수정)
-FROM eclipse-temurin:17-jdk-jammy AS builder
+# Java 21(Temurin JDK) 이미지를 'builder'라는 별명으로 사용합니다. (대문자 AS로 문법 경고 수정)
+FROM eclipse-temurin:21-jdk-jammy AS builder
 
 # 컨테이너 내에서 작업을 수행할 디렉토리를 만듭니다.
 WORKDIR /workspace/app
@@ -31,8 +31,8 @@ RUN ./gradlew build --no-daemon -x test
 #  - 1단계에서 만들어진 .jar 파일을 실행시키는 역할만 하는 가벼운 환경입니다.
 # =========================================================================
 
-# 훨씬 가벼운 Java 17 실행 환경(JRE) 이미지를 베이스로 사용합니다.
-FROM eclipse-temurin:17-jre-jammy
+
+FROM eclipse-temurin:21-jre-jammy
 
 # 컨테이너 내에서 임시 파일을 저장할 공간을 지정합니다. Spring Boot가 사용합니다.
 VOLUME /tmp
