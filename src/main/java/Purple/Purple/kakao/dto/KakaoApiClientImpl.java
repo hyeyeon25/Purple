@@ -1,26 +1,27 @@
 package Purple.Purple.kakao.dto;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-// 실제 Kakao API를 호출하는 클라이언트 구현체
-
 @Component
 @Primary
-@RequiredArgsConstructor
 @Slf4j
 public class KakaoApiClientImpl implements KakaoApiClient {
 
-    private final WebClient kakaoWebClient; // WebClientConfig에서 등록한 Bean을 주입받습니다.
+    private final WebClient kakaoWebClient;
 
-    // application.yml에 설정한 카카오 REST API 키를 주입받습니다.
-    @Value("${kakao.api.key}")
+    @Value("${kakaomap.api.key}")
     private String kakaoApiKey;
+
+    // @Qualifier를 사용하여 어떤 WebClient Bean을 주입받을지 명확하게 지정합니다.
+    public KakaoApiClientImpl(@Qualifier("kakaoWebClient") WebClient kakaoWebClient) {
+        this.kakaoWebClient = kakaoWebClient;
+    }
 
     @Override
     public KakaoPlaceSearchResponse searchPlaces(String keyword, Double longitude, Double latitude, Integer radius, Integer page) {
@@ -52,7 +53,6 @@ public class KakaoApiClientImpl implements KakaoApiClient {
                 .bodyToMono(KakaoPlaceSearchResponse.class)
 
                 // Mono<T> 타입의 비동기 결과를 동기적으로 기다려서 T 타입의 객체를 얻습니다.
-                // 실제 대용량 트래픽 처리 시에는 block() 대신 비동기 파이프라인을 그대로 사용하는 것이 좋습니다.
                 .block();
     }
 }
