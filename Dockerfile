@@ -13,9 +13,8 @@ WORKDIR /workspace/app
 # settings.gradle은 프로젝트 구조를 정의하는 필수 파일일 가능성이 높습니다.
 COPY gradlew .
 COPY gradle gradle
-COPY ../../Users/user/OneDrive/바탕%20화면/build.gradle .
+COPY build.gradle .
 COPY settings.gradle .
-
 # Gradle Wrapper에 실행 권한을 부여합니다.
 RUN chmod +x ./gradlew
 
