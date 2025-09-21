@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "User_personal_info_test")
+@Table(name = "User")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,9 +14,9 @@ public class UserPersonalInfo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Userid;
+    private Long userId;
 
-    @Column(name = "user_id", nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String email;
 
     @Column(name = "userName", nullable = false, unique = true, length = 50)
@@ -30,5 +30,7 @@ public class UserPersonalInfo {
 
     @Column(nullable = false, length = 20)
     private String role = "USER";
+
+
 
 }

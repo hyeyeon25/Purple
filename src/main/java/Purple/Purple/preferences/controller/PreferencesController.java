@@ -25,7 +25,7 @@ public class PreferencesController {
     })
     @PostMapping("/{userId}")
     public ResponseEntity<UserPreferenceResponse> savePreferences(
-            @PathVariable int userId,
+            @PathVariable Long userId,
             @RequestBody UserPreferenceRequest request) {
         UserPreferenceResponse response = preferencesService.savePreferences(userId, request);
         return ResponseEntity.ok(response);
@@ -37,7 +37,7 @@ public class PreferencesController {
             @ApiResponse(responseCode = "404", description = "성향 정보 없음")
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<UserPreferenceResponse> getPreferences(@PathVariable int userId) {
+    public ResponseEntity<UserPreferenceResponse> getPreferences(@PathVariable Long userId) {
         UserPreferenceResponse response = preferencesService.getPreferences(userId);
         return ResponseEntity.ok(response);
     }

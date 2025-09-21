@@ -1,6 +1,7 @@
 package Purple.Purple.preferences.entity;
 
 
+import Purple.Purple.user.entity.UserPersonalInfo;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,25 +11,26 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@Table(
-        name = "preferences",
-        uniqueConstraints = @UniqueConstraint(name = "uq_preferences_user", columnNames = "user_id")
-)
+@Table(name = "preferences")
 public class PreferencesEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;                   // 새 PK
 
-    @Column(name = "user_id", nullable = false)
-    private Integer userid;            // 사용자 식별자 (유니크)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
+    private UserPersonalInfo user;            // 사용자 식별자 (유니크)
 
-    @Column(nullable = false, length = 6)
+    @Column(nullable = false)
     private int foodPreference;
-    @Column(nullable = false, length = 100)
+
+    @Column(nullable = false)
     private int desertPreference;
-    @Column(nullable = false, length = 100)
+
+    @Column(nullable = false)
     private int culturePreference;
 
-    @Column(nullable = false, length = 3)
+    @Column(nullable = false)
     private int timePreference;
 
     @Column(nullable = false)
@@ -36,6 +38,9 @@ public class PreferencesEntity {
 
     @Column(nullable = false)
     private boolean extrovertPreference; // true=외향, false=내향
+
+
+
 }
 
  /*@ElementCollection
