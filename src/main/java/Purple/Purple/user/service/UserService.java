@@ -47,7 +47,7 @@ public class UserService {
         userRepository.save(user);
 
         // 응답 DTO 반환
-        return new UserResponse(user.getUserid(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
     }
 
     //로그인
@@ -57,8 +57,8 @@ public class UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
-        String accessToken = jwtUtil.createJwt("access", user.getEmail(), "", 10 * 60 * 1000L);
-        String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), "", 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
+        String accessToken = jwtUtil.createJwt("access", user.getEmail(), user.getRole(), 10 * 60 * 1000L);
+        String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), user.getRole(), 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
 
         jwtUtil.addRefreshEntity(user.getEmail(), refreshToken, 86400000L);
 
@@ -72,7 +72,7 @@ public class UserService {
     public UserResponse getUserInfo(Long userId) {
         UserPersonalInfo user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        return new UserResponse(user.getUserid(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
     }
 
 
@@ -84,7 +84,7 @@ public class UserService {
         if (request.getNickname() != null) {
             user.setNickname(request.getNickname());
         }
-        return new UserResponse(user.getUserid(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
     }
 
     //비밀번호 변경

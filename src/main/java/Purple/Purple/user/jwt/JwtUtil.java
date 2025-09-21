@@ -29,10 +29,10 @@ public class JwtUtil {
     }
 
 
-    public String createJwt(String category, String username, String role, Long expiredMs) {
+    public String createJwt(String category, String email, String role, Long expiredMs) {
         return Jwts.builder()
                 .claim("category", category)
-                .claim("username", username)
+                .claim("email", email)
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
