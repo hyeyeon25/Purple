@@ -23,4 +23,17 @@
 hs_err_pid*
 replay_pid*
 
+# --- Gradle ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
 
+# --- IntelliJ / JetBrains IDE ---
+.idea/
+*.iml
+out/
+
+# --- OS 잡동사니(선택) ---
+.DS_Store
+Thumbs.db
+*.bin
