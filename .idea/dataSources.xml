@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="tripick_db@localhost" uuid="cf5863a2-cf7f-43d4-b7b3-0f2544bf44b2">
+    <data-source source="LOCAL" name="tripick_db@localhost" uuid="b2135cd9-c79a-41f9-906c-732813ae5476">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
