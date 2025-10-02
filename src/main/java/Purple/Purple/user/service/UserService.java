@@ -32,22 +32,21 @@ public class UserService {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
         // 닉네임 중복 체크
-        if (userRepository.findByNickname(request.getNickname()).isPresent()) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
-        }
+
 
         // 엔티티 생성 및 저장
         UserPersonalInfo user = UserPersonalInfo.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .userName(request.getUserName())
                 .nickname(request.getNickname())
                 .role("USER")
+                .birthDate(request.getBirthDate())
+                .gender(request.getGender())
                 .build();
         userRepository.save(user);
 
         // 응답 DTO 반환
-        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getNickname(), user.getGender(), user.getBirthDate());
     }
 
     //로그인
@@ -72,7 +71,7 @@ public class UserService {
     public UserResponse getUserInfo(Long userId) {
         UserPersonalInfo user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getNickname(), user.getGender(), user.getBirthDate());
     }
 
 
@@ -84,7 +83,7 @@ public class UserService {
         if (request.getNickname() != null) {
             user.setNickname(request.getNickname());
         }
-        return new UserResponse(user.getUserId(), user.getEmail(), user.getUserName(), user.getNickname());
+        return new UserResponse(user.getUserId(), user.getEmail(), user.getNickname(), user.getGender(), user.getBirthDate());
     }
 
     //비밀번호 변경
