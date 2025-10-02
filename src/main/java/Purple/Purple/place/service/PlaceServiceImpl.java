@@ -29,6 +29,7 @@ public class PlaceServiceImpl implements PlaceService {
     private final PlaceMapper placeMapper;
     private final KakaoApiClient kakaoApiClient;
     private final NeighborhoodRepository neighborhoodRepository;
+    private final PlaceScoreService placeScoreService;
 
     @Override
     @Transactional
@@ -48,7 +49,6 @@ public class PlaceServiceImpl implements PlaceService {
 
         for (NeighborhoodEntity neighborhood : neighborhoods) {
             for (String keyword : keywords) {
-                // [수정됨!] 각 작업의 시작을 명확하게 로그로 남깁니다.
                 log.info("- '{}' 지역 '{}' 카테고리 데이터 수집을 시작합니다.", neighborhood.getNeighborhoodName(), keyword);
                 boolean success = true; // 작업 성공 여부를 추적하는 플래그
                 int page = 1;
@@ -69,6 +69,7 @@ public class PlaceServiceImpl implements PlaceService {
                                     PlaceCreateDto createDto = placeMapper.toPlaceCreateDto(doc, neighborhood.getNeighborhoodId());
                                     PlaceEntity newPlace = placeMapper.toEntity(createDto);
                                     newPlace.setNeighborhood(neighborhood);
+                                    placeScoreService.assignScores(newPlace);
                                     placeRepository.save(newPlace);
                                     savedCount++; // 저장 카운트 증가
                                 }
@@ -154,7 +155,7 @@ public class PlaceServiceImpl implements PlaceService {
                 .orElse(searchResult.getDocuments().get(0));
 
         place.setPlaceName(latestData.getPlaceName());
-        place.setPlaceCategory(latestData.getCategoryName());
+        place.setPlaceCategory(latestData.getCategoryName()); // 카테고리가 변경될 수 있음
         place.setAddress(
                 (latestData.getRoadAddressName() != null && !latestData.getRoadAddressName().isEmpty())
                         ? latestData.getRoadAddressName()
@@ -163,10 +164,11 @@ public class PlaceServiceImpl implements PlaceService {
         place.setLatitude(Double.parseDouble(latestData.getY()));
         place.setLongitude(Double.parseDouble(latestData.getX()));
 
+        placeScoreService.assignScores(place);
+
         PlaceEntity updatedPlace = placeRepository.save(place);
         log.info("'{}' 장소 정보가 업데이트되었습니다.", updatedPlace.getPlaceName());
 
         return placeMapper.toResponseDto(updatedPlace);
     }
 }
-

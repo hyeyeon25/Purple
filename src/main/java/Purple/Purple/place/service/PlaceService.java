@@ -1,6 +1,7 @@
 package Purple.Purple.place.service;
 
 import Purple.Purple.place.dto.PlaceResponseDto;
+import Purple.Purple.place.entity.PlaceEntity;
 
 import java.util.List;
 
