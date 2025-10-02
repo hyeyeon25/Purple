@@ -1,7 +1,10 @@
 package Purple.Purple.user.entity;
 
+import Purple.Purple.enums.Gender;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -14,15 +17,12 @@ public class UserPersonalInfo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    private Long userId;//id
 
     @Column(nullable = false, unique = true, length = 50)
-    private String email;
+    private String email;//userid
 
-    @Column(name = "userName", nullable = false, unique = true, length = 50)
-    private String userName;
-
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String password;
 
     @Column(name = "nickname", nullable = false, length = 50)
@@ -30,6 +30,15 @@ public class UserPersonalInfo {
 
     @Column(nullable = false, length = 20)
     private String role = "USER";
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Gender gender;
+
+    @Column(nullable = false)
+    private LocalDate birthDate;// yyyy-MM-dd
+
+
 
 
 
