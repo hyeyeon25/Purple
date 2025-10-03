@@ -49,8 +49,8 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**",
                                 "/"
-                        ).permitAll()
-                        .anyRequest().authenticated()
+                        ).permitAll() // 여기에 명시된 주소들은 '누구나' 접근 가능
+                        .anyRequest().authenticated() // 그리고 나머지 모든 요청은 '로그인한 사람만' 가능
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
