@@ -1,13 +1,15 @@
 package Purple.Purple.place.entity;
 
 import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
+import Purple.Purple.folder.PlaceSlot;
 import jakarta.persistence.*;
-        import lombok.*;
-
-        import java.time.LocalTime;
+import lombok.*;
+import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "Place")
+@Table(name = "place")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -82,4 +84,7 @@ public class PlaceEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "neighborhood_id", nullable = false)
     private NeighborhoodEntity neighborhood;
+
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PlaceSlot> availableSlots = new HashSet<>();
 }
