@@ -57,11 +57,18 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest req, HttpServletResponse response) {
-        Map<String, String> tokens = userService.login(req);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletResponse response) {
+        //Map<String, String> tokens = userService.login(req);
+        LoginResponse loginResponse = userService.login(req);
 
-        String accessToken = tokens.get("access");
-        String refreshToken = tokens.get("refresh");
+        //String accessToken = tokens.get("access");
+        //String refreshToken = tokens.get("refresh");
+        String refreshToken = jwtUtil.createJwt(
+                "refresh",
+                req.getEmail(),
+                "USER", // 필요시 userService.login() 반환값에서 role도 꺼내기
+                7 * 24 * 60 * 60 * 1000L
+        );
 
         Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
         refreshCookie.setHttpOnly(true);
@@ -71,9 +78,10 @@ public class UserController {
 
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-        Map<String,String> body = Map.of("token", accessToken);
-        return new ResponseEntity<>(body, headers, HttpStatus.OK);
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + loginResponse.getToken());
+        //headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        //Map<String,String> body = Map.of("token", accessToken);
+        return new ResponseEntity<>(loginResponse, headers, HttpStatus.OK);
     }
 
 
