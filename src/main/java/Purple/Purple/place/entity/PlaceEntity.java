@@ -80,6 +80,12 @@ public class PlaceEntity {
     @Column(name = "recommended_slot", length = 50)
     private String recommendedSlot;
 
+    @Column(columnDefinition = "TEXT")
+    private String tags;
+
+    @Column(name = "tag_vector", columnDefinition = "TEXT")
+    private String tagVector;
+
     // FK 매핑: Place → Neighborhood (N:1)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "neighborhood_id", nullable = false)
