@@ -138,20 +138,6 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
     private List<String> extractTagsFromPlace(PlaceEntity place) {
         List<String> tags = new ArrayList<>();
 
-        // 카테고리 기반 태그
-        if (place.getScoreFood() != null && place.getScoreFood() > 0) {
-            tags.add("음식점");
-        }
-        if (place.getScoreCafe() != null && place.getScoreCafe() > 0) {
-            tags.add("카페");
-        }
-        if (place.getScoreActivity() != null && place.getScoreActivity() > 0) {
-            tags.add("액티비티");
-        }
-        if (place.getScoreCulture() != null && place.getScoreCulture() > 0) {
-            tags.add("문화");
-        }
-
         // 실내/실외
         if (place.getIsIndoor() != null) {
             tags.add(place.getIsIndoor() ? "실내" : "실외");
