@@ -50,21 +50,29 @@ public class UserService {
     }
 
     //로그인
-    public Map<String, String> login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         UserPersonalInfo user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
-        String accessToken = jwtUtil.createJwt("access", user.getEmail(), user.getRole(), 10 * 60 * 1000L);
-        String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), user.getRole(), 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
+        String accessToken = jwtUtil.createJwt(
+                "access",
+                user.getEmail(), user.getRole(),
+                10 * 60 * 1000L);
+
+        String refreshToken = jwtUtil.createJwt(
+                "refresh",
+                user.getEmail(), user.getRole(),
+                7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
 
         jwtUtil.addRefreshEntity(user.getEmail(), refreshToken, 86400000L);
 
-        return Map.of(
-                "access", accessToken,
-                "refresh", refreshToken
-        );
+//        return Map.of(
+//                "access", accessToken,
+//                "refresh", refreshToken
+//        );
+        return new LoginResponse("로그인 성공", accessToken, user.getNickname());
     }
 
     //사용자 정보 조회
