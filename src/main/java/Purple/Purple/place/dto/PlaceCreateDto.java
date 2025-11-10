@@ -46,28 +46,6 @@ public class PlaceCreateDto {
     @DecimalMax(value = "180.0", message = "유효하지 않은 경도입니다.")
     private Double longitude;
 
-
-    /** 카테고리별 점수 (내부 로직으로 계산하여 세팅) */
-    @Builder.Default
-    @NotNull(message = "음식 점수는 필수입니다.")
-    @Min(value = 0, message = "점수는 0 이상이어야 합니다.")
-    private Integer scoreFood = 0;
-
-    @Builder.Default
-    @NotNull(message = "카페 점수는 필수입니다.")
-    @Min(value = 0, message = "점수는 0 이상이어야 합니다.")
-    private Integer scoreCafe = 0;
-
-    @Builder.Default
-    @NotNull(message = "활동 점수는 필수입니다.")
-    @Min(value = 0, message = "점수는 0 이상이어야 합니다.")
-    private Integer scoreActivity = 0;
-
-    @Builder.Default
-    @NotNull(message = "문화 점수는 필수입니다.")
-    @Min(value = 0, message = "점수는 0 이상이어야 합니다.")
-    private Integer scoreCulture = 0;
-
     /** 요약/소개 — 없으면 null/빈문자 허용 */
     private String summary;
 
