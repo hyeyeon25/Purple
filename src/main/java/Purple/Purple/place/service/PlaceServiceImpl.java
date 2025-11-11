@@ -67,10 +67,14 @@ public class PlaceServiceImpl implements PlaceService {
                             for (KakaoPlaceDocument doc : response.getDocuments()) {
                                 if (placeRepository.findByKakaoPlaceId(doc.getId()).isEmpty()) {
                                     PlaceCreateDto createDto = placeMapper.toPlaceCreateDto(doc, neighborhood.getNeighborhoodId());
-                                    PlaceEntity newPlace = placeMapper.toEntity(createDto);
-                                    newPlace.setNeighborhood(neighborhood);
-                                    placeRepository.save(newPlace);
-                                    savedCount++; // 저장 카운트 증가
+                                    if (createDto != null) {
+                                        PlaceEntity newPlace = placeMapper.toEntity(createDto);
+                                        if (newPlace != null) {
+                                            newPlace.setNeighborhood(neighborhood);
+                                            placeRepository.save(newPlace);
+                                            savedCount++; // 저장 카운트 증가
+                                        }
+                                    }
                                 }
                             }
                         }

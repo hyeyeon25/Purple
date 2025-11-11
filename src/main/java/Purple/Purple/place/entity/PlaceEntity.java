@@ -40,22 +40,6 @@ public class PlaceEntity {
     @Column(nullable = false)
     private Double longitude;
 
-    @Builder.Default
-    @Column(name = "score_food", nullable = false)
-    private Integer scoreFood = 0;
-
-    @Builder.Default
-    @Column(name = "score_cafe", nullable = false)
-    private Integer scoreCafe = 0;
-
-    @Builder.Default
-    @Column(name = "score_activity", nullable = false)
-    private Integer scoreActivity = 0;
-
-    @Builder.Default
-    @Column(name = "score_culture", nullable = false)
-    private Integer scoreCulture = 0;
-
     @Column(columnDefinition = "TEXT")
     private String summary;
 
@@ -79,6 +63,12 @@ public class PlaceEntity {
 
     @Column(name = "recommended_slot", length = 50)
     private String recommendedSlot;
+
+    @Column(columnDefinition = "TEXT")
+    private String tags;
+
+    @Column(name = "tag_vector", columnDefinition = "TEXT")
+    private String tagVector;
 
     // FK 매핑: Place → Neighborhood (N:1)
     @ManyToOne(fetch = FetchType.LAZY)
