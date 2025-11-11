@@ -1,5 +1,6 @@
 package Purple.Purple.Neighborhood.service;
 
+import Purple.Purple.common.constants.TagDictionary;
 import Purple.Purple.Neighborhood.dto.NeighborhoodRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.PlaceRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.UserPreferenceRequestDto;
@@ -29,14 +30,6 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
     private final PlaceRepository placeRepository;
     private final PreferencesRepository preferencesRepository;
     private final ObjectMapper objectMapper;
-
-    // 고정된 태그 사전 (TagVectorizationServiceImpl과 동일)
-    private static final List<String> TAG_DICTIONARY = Arrays.asList(
-            "음식점", "카페", "액티비티", "문화",
-            "실내", "실외",
-            "아침추천", "점심추천", "오후추천", "저녁추천", "밤추천",
-            "데이트", "가족", "친구", "혼자"
-    );
 
     @Override
     @Transactional(readOnly = true)
@@ -174,12 +167,12 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
 
     /**
      * 원-핫 인코딩으로 벡터 생성
-     * TagVectorizationServiceImpl의 generateVector와 동일한 로직
+     * TagDictionary의 56개 태그 순서를 따름
      */
     private List<Double> generateVector(List<String> tags) {
         List<Double> vector = new ArrayList<>();
 
-        for (String dictTag : TAG_DICTIONARY) {
+        for (String dictTag : TagDictionary.TAGS) {
             if (tags.contains(dictTag)) {
                 vector.add(1.0);
             } else {
@@ -327,6 +320,9 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
     /**
      * 카테고리로 장소 필터링
      *
+     * 각 장소는 우선순위에 따라 하나의 카테고리에만 속합니다.
+     * 우선순위: 카페 > 문화시설 > 야외활동 > 음식점 > 기타
+     *
      * @param places 필터링할 장소 리스트
      * @param category 필터링 카테고리 ("음식점", "카페", "문화", "액티비티", "기타")
      * @return 필터링된 장소 리스트
@@ -347,68 +343,96 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
 
                     String placeCategoryLower = placeCategory.toLowerCase();
 
-                    // 카테고리 매칭 로직
-                    switch (categoryLower) {
-                        case "음식점":
-                            return placeCategoryLower.contains("음식")
-                                    || placeCategoryLower.contains("식당")
-                                    || placeCategoryLower.contains("레스토랑")
-                                    || placeCategoryLower.contains("한식")
-                                    || placeCategoryLower.contains("중식")
-                                    || placeCategoryLower.contains("일식")
-                                    || placeCategoryLower.contains("양식")
-                                    || placeCategoryLower.contains("치킨")
-                                    || placeCategoryLower.contains("분식")
-                                    || placeCategoryLower.contains("fast food")
-                                    || placeCategoryLower.contains("패스트푸드");
+                    // 장소의 실제 카테고리 결정 (우선순위 기반)
+                    String actualCategory = determinePrimaryCategory(placeCategoryLower);
 
-                        case "카페":
-                            return placeCategoryLower.contains("카페")
-                                    || placeCategoryLower.contains("cafe")
-                                    || placeCategoryLower.contains("디저트")
-                                    || placeCategoryLower.contains("베이커리");
-
-                        case "문화":
-                            return placeCategoryLower.contains("문화")
-                                    || placeCategoryLower.contains("박물관")
-                                    || placeCategoryLower.contains("미술관")
-                                    || placeCategoryLower.contains("갤러리")
-                                    || placeCategoryLower.contains("전시")
-                                    || placeCategoryLower.contains("극장")
-                                    || placeCategoryLower.contains("공연");
-
-                        case "액티비티":
-                            return placeCategoryLower.contains("액티비티")
-                                    || placeCategoryLower.contains("체험")
-                                    || placeCategoryLower.contains("스포츠")
-                                    || placeCategoryLower.contains("운동")
-                                    || placeCategoryLower.contains("레저")
-                                    || placeCategoryLower.contains("오락")
-                                    || placeCategoryLower.contains("게임")
-                                    || placeCategoryLower.contains("볼링")
-                                    || placeCategoryLower.contains("당구")
-                                    || placeCategoryLower.contains("노래방")
-                                    || placeCategoryLower.contains("pc방");
-
-                        case "기타":
-                            // 음식점, 카페, 문화, 액티비티에 해당하지 않는 모든 장소
-                            return !(placeCategoryLower.contains("음식")
-                                    || placeCategoryLower.contains("식당")
-                                    || placeCategoryLower.contains("레스토랑")
-                                    || placeCategoryLower.contains("카페")
-                                    || placeCategoryLower.contains("cafe")
-                                    || placeCategoryLower.contains("문화")
-                                    || placeCategoryLower.contains("박물관")
-                                    || placeCategoryLower.contains("미술관")
-                                    || placeCategoryLower.contains("액티비티")
-                                    || placeCategoryLower.contains("체험"));
-
-                        default:
-                            // 알 수 없는 카테고리는 모든 장소 반환
-                            log.warn("Unknown category: {}", category);
-                            return true;
-                    }
+                    // 요청된 카테고리와 실제 카테고리 비교
+                    return actualCategory.equals(categoryLower);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 장소의 주 카테고리를 우선순위에 따라 결정
+     *
+     * @param placeCategoryLower 장소 카테고리 (소문자)
+     * @return 주 카테고리 ("카페", "문화", "액티비티", "음식점", "기타")
+     */
+    private String determinePrimaryCategory(String placeCategoryLower) {
+        // 우선순위 1: 문화시설
+        if (placeCategoryLower.contains("문화")
+                || placeCategoryLower.contains("박물관")
+                || placeCategoryLower.contains("미술관")
+                || placeCategoryLower.contains("갤러리")
+                || placeCategoryLower.contains("전시")
+                || placeCategoryLower.contains("극장")
+                || placeCategoryLower.contains("공연")
+                || placeCategoryLower.contains("도서관")
+                || placeCategoryLower.contains("library")
+                || placeCategoryLower.contains("학습시설")
+                || placeCategoryLower.contains("서점")
+                || placeCategoryLower.contains("gallery")) {
+            return "문화공간";
+        }
+
+        // 우선순위 2: 야외활동 (액티비티)
+        if (placeCategoryLower.contains("공원")
+                || placeCategoryLower.contains("park")
+                || placeCategoryLower.contains("산책")
+                || placeCategoryLower.contains("야외")
+                || placeCategoryLower.contains("outdoor")
+                || placeCategoryLower.contains("액티비티")
+                || placeCategoryLower.contains("체험")
+                || placeCategoryLower.contains("스포츠")
+                || placeCategoryLower.contains("운동")
+                || placeCategoryLower.contains("레저")
+                || placeCategoryLower.contains("오락")
+                || placeCategoryLower.contains("게임")
+                || placeCategoryLower.contains("볼링")
+                || placeCategoryLower.contains("당구")
+                || placeCategoryLower.contains("노래방")
+                || placeCategoryLower.contains("pc방")
+                || placeCategoryLower.contains("activity")
+                || placeCategoryLower.contains("sports")
+                || placeCategoryLower.contains("관광")     // "여행 > 관광,명소 > ..." 매칭
+                || placeCategoryLower.contains("명소")
+                || placeCategoryLower.contains("수목원")   // "여행 > 관광,명소 > 수목원,식물원" 매칭
+                || placeCategoryLower.contains("식물원")
+                || placeCategoryLower.contains("하천")     // "여행 > 관광,명소 > 하천" 매칭
+                || placeCategoryLower.contains("산")       // "여행 > 관광,명소 > 산" 매칭
+                || placeCategoryLower.contains("계곡")     // "여행 > 관광,명소 > 계곡" 매칭
+                || placeCategoryLower.contains("놀이터")   // "가정,생활 > 유아 > 놀이시설 > 놀이터" 매칭
+                || placeCategoryLower.contains("놀이시설")
+                || placeCategoryLower.contains("여행")) {
+            return "액티비티";
+        }
+        // 우선순위 3: 카페
+        if (placeCategoryLower.contains("카페")
+                || placeCategoryLower.contains("cafe")
+                || placeCategoryLower.contains("디저트")
+                || placeCategoryLower.contains("베이커리")
+                || placeCategoryLower.contains("bakery")) {
+            return "카페";
+        }
+        // 우선순위 4: 음식점 (카페는 이미 위에서 걸러짐)
+        if (placeCategoryLower.contains("음식")
+                || placeCategoryLower.contains("식당")
+                || placeCategoryLower.contains("음식점")
+                || placeCategoryLower.contains("레스토랑")
+                || placeCategoryLower.contains("한식")
+                || placeCategoryLower.contains("중식")
+                || placeCategoryLower.contains("일식")
+                || placeCategoryLower.contains("양식")
+                || placeCategoryLower.contains("치킨")
+                || placeCategoryLower.contains("분식")
+                || placeCategoryLower.contains("fastfood")
+                || placeCategoryLower.contains("패스트푸드")
+                || placeCategoryLower.contains("restaurant")
+                || placeCategoryLower.contains("food")) {
+            return "음식점";
+        }
+
+        // 우선순위 5: 기타 (위 카테고리에 속하지 않는 모든 것)
+        return "기타";
     }
 }
