@@ -1,14 +1,14 @@
 package Purple.Purple.folder.controller;
 
-import Purple.Purple.folder.dto.FolderCreateRequestDto;
-import Purple.Purple.folder.dto.FolderDetailResponseDto;
-import Purple.Purple.folder.dto.FolderSummaryResponseDto;
-import Purple.Purple.folder.dto.FolderUpdateRequestDto;
+import Purple.Purple.folder.dto.*;
 import Purple.Purple.itinerery.dto.PlaceAddRequestDto;
 import Purple.Purple.itinerery.dto.RouteUpdateRequestDto;
 import Purple.Purple.folder.service.FolderService;
 import Purple.Purple.itinerery.service.RouteService;
 import Purple.Purple.user.entity.UserPersonalInfo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,84 +20,107 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/folders")
+@Tag(name = "Folder API", description = "여행 폴더 관리 (CRUD, 장소 추가, 경로 설정/조회)")
 public class FolderController {
 
 	private final FolderService folderService;
 	private final RouteService routeService;
 
-	// 폴더 생성 (Itinerary 대리)
+	@Operation(summary = "폴더 생성", description = "새 여행 폴더를 생성합니다. (Itinerary 대리 역할)")
+	@ApiResponse(responseCode = "201", description = "폴더 생성 성공")
 	@PostMapping
-	public ResponseEntity<Integer> createFolder(@RequestBody FolderCreateRequestDto requestDto,
-	                                            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<Integer> createFolder(
+			@RequestBody FolderCreateRequestDto requestDto,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		Integer id = folderService.createFolder(requestDto, currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(id);
 	}
 
-	// 내 폴더 목록
+	@Operation(summary = "내 폴더 목록 조회", description = "현재 로그인한 사용자의 모든 폴더 목록을 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@GetMapping
-	public ResponseEntity<List<FolderSummaryResponseDto>> listMyFolders(@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<List<FolderSummaryResponseDto>> listMyFolders(
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		List<FolderSummaryResponseDto> list = folderService.listMyFolders(currentUserId);
 		return ResponseEntity.ok(list);
 	}
 
-	// 폴더 상세
+	@Operation(summary = "폴더 상세 조회", description = "폴더 ID를 이용해 상세 정보를 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@GetMapping("/{folderId}")
-	public ResponseEntity<FolderDetailResponseDto> getFolder(@PathVariable Integer folderId,
-	                                                            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<FolderDetailResponseDto> getFolder(
+			@PathVariable Integer folderId,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		FolderDetailResponseDto dto = folderService.getFolderDetails(folderId, currentUserId);
 		return ResponseEntity.ok(dto);
 	}
 
-	// 폴더 수정
+	@Operation(summary = "폴더 수정", description = "폴더 이름, 날짜 등 폴더 정보를 수정합니다.")
+	@ApiResponse(responseCode = "204", description = "수정 성공 (내용 없음)")
 	@PutMapping("/{folderId}")
-	public ResponseEntity<Void> updateFolder(@PathVariable Integer folderId,
-	                                         @RequestBody FolderUpdateRequestDto requestDto,
-	                                         @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<Void> updateFolder(
+			@PathVariable Integer folderId,
+			@RequestBody FolderUpdateRequestDto requestDto,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		folderService.updateFolder(folderId, requestDto, currentUserId);
 		return ResponseEntity.noContent().build();
 	}
 
-	// 폴더 삭제
+	@Operation(summary = "폴더 삭제", description = "폴더 ID를 이용해 해당 폴더를 삭제합니다.")
+	@ApiResponse(responseCode = "204", description = "삭제 성공 (내용 없음)")
 	@DeleteMapping("/{folderId}")
-	public ResponseEntity<Void> deleteFolder(@PathVariable Integer folderId,
-	                                         @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<Void> deleteFolder(
+			@PathVariable Integer folderId,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		folderService.deleteFolder(folderId, currentUserId);
 		return ResponseEntity.noContent().build();
 	}
 
-	// 폴더에 장소 추가
+	@Operation(summary = "폴더에 장소 추가", description = "지정한 폴더에 장소를 추가합니다.")
+	@ApiResponse(responseCode = "201", description = "장소 추가 성공")
 	@PostMapping("/{folderId}/places")
-	public ResponseEntity<Integer> addPlaceToFolder(@PathVariable Integer folderId,
-	                                                @RequestBody PlaceAddRequestDto requestDto,
-	                                                @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<Integer> addPlaceToFolder(
+			@PathVariable Integer folderId,
+			@RequestBody PlaceAddRequestDto requestDto,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		Integer resultFolderId = folderService.addPlaceToFolder(folderId, requestDto.getPlaceId(), currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(resultFolderId);
 	}
 
-	// 폴더의 경로(방문 순서) 설정 - 각 폴더 당 한 개의 경로만 유지
+	@Operation(summary = "폴더 경로 설정", description = "폴더 내 장소들의 방문 순서를 설정합니다. (각 폴더 당 1개의 경로 유지)")
+	@ApiResponse(responseCode = "204", description = "경로 설정 성공")
 	@PutMapping("/{folderId}/route")
-	public ResponseEntity<Void> updateFolderRoute(@PathVariable Integer folderId,
-	                                              @RequestBody RouteUpdateRequestDto requestDto,
-	                                              @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<Void> updateFolderRoute(
+			@PathVariable Integer folderId,
+			@RequestBody RouteUpdateRequestDto requestDto,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		routeService.putRoute(folderId, requestDto, currentUserId);
 		return ResponseEntity.noContent().build();
 	}
 
-	// 폴더의 경로(방문 순서) 조회
+	@Operation(summary = "폴더 경로 조회", description = "폴더 내 장소들의 현재 방문 순서를 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@GetMapping("/{folderId}/route")
-	public ResponseEntity<List<Integer>> getFolderRoute(@PathVariable Integer folderId,
-	                                                    @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+	public ResponseEntity<List<Integer>> getFolderRoute(
+			@PathVariable Integer folderId,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		List<Integer> route = routeService.getRoute(folderId, currentUserId);
 		return ResponseEntity.ok(route);
 	}
 }
-
-
