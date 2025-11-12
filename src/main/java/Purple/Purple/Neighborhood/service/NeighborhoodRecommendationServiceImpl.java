@@ -2,6 +2,7 @@ package Purple.Purple.Neighborhood.service;
 
 import Purple.Purple.common.constants.TagDictionary;
 import Purple.Purple.Neighborhood.dto.NeighborhoodRecommendationResponseDto;
+import Purple.Purple.Neighborhood.dto.PagedPlaceRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.PlaceRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.UserPreferenceRequestDto;
 import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
@@ -60,13 +61,15 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
 
     @Override
     @Transactional(readOnly = true)
-    public List<PlaceRecommendationResponseDto> recommendPlacesInNeighborhoodByUserId(
+    public PagedPlaceRecommendationResponseDto recommendPlacesInNeighborhoodByUserId(
             Integer neighborhoodId,
             String category,
-            Long userId) {
+            Long userId,
+            int page,
+            int size) {
 
-        log.info("Starting place recommendation for userId: {}, neighborhoodId: {}, category: {}",
-                userId, neighborhoodId, category);
+        log.info("Starting place recommendation for userId: {}, neighborhoodId: {}, category: {}, page: {}, size: {}",
+                userId, neighborhoodId, category, page, size);
 
         // 1. 사용자 선호도 벡터 조회
         PreferencesEntity preferences = preferencesRepository.findByUser_UserId(userId)
@@ -86,8 +89,8 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
 
         log.debug("User preference vector loaded: {}", normalizedUserVector);
 
-        // 3. 장소 추천 로직 실행
-        return recommendPlacesWithVector(neighborhoodId, category, normalizedUserVector);
+        // 3. 장소 추천 로직 실행 (페이지네이션)
+        return recommendPlacesWithVector(neighborhoodId, category, normalizedUserVector, page, size);
     }
 
     /**
@@ -233,15 +236,17 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
     }
 
     /**
-     * 벡터 기반 장소 추천 (내부 로직)
+     * 벡터 기반 장소 추천 (내부 로직, 페이지네이션 지원)
      */
-    private List<PlaceRecommendationResponseDto> recommendPlacesWithVector(
+    private PagedPlaceRecommendationResponseDto recommendPlacesWithVector(
             Integer neighborhoodId,
             String category,
-            List<Double> normalizedUserVector) {
+            List<Double> normalizedUserVector,
+            int page,
+            int size) {
 
-        log.info("Starting place recommendation for neighborhood ID: {}, category: {}",
-                neighborhoodId, category);
+        log.info("Starting place recommendation for neighborhood ID: {}, category: {}, page: {}, size: {}",
+                neighborhoodId, category, page, size);
 
         // 1. 동네 조회
         NeighborhoodEntity neighborhood = neighborhoodRepository.findById(neighborhoodId)
@@ -252,7 +257,7 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
 
         if (places.isEmpty()) {
             log.warn("No places found in neighborhood: {}", neighborhood.getNeighborhoodName());
-            return Collections.emptyList();
+            return createEmptyPage(page, size);
         }
 
         // 3. 카테고리로 필터링
@@ -261,7 +266,7 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
         if (filteredPlaces.isEmpty()) {
             log.warn("No places found matching category: {} in neighborhood: {}",
                     category, neighborhood.getNeighborhoodName());
-            return Collections.emptyList();
+            return createEmptyPage(page, size);
         }
 
         log.debug("Filtered {} places by category: {}", filteredPlaces.size(), category);
@@ -306,15 +311,60 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             }
         }
 
-        // 6. 유사도 점수 기준 내림차순 정렬
+        // 5. 유사도 점수 기준 내림차순 정렬
         List<PlaceRecommendationResponseDto> sortedRecommendations = recommendations.stream()
                 .sorted(Comparator.comparing(PlaceRecommendationResponseDto::getSimilarityScore).reversed())
                 .collect(Collectors.toList());
 
-        log.info("Recommended {} places in neighborhood {} (category: {})",
-                sortedRecommendations.size(), neighborhood.getNeighborhoodName(), category);
+        // 6. 페이지네이션 적용
+        long totalElements = sortedRecommendations.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
 
-        return sortedRecommendations;
+        // 페이지 번호 유효성 검사
+        if (page < 0) {
+            page = 0;
+        }
+
+        // 페이지 범위 계산
+        int startIndex = page * size;
+        int endIndex = Math.min(startIndex + size, sortedRecommendations.size());
+
+        // 페이지에 해당하는 데이터 추출
+        List<PlaceRecommendationResponseDto> pagedContent;
+        if (startIndex >= sortedRecommendations.size()) {
+            pagedContent = Collections.emptyList();
+        } else {
+            pagedContent = sortedRecommendations.subList(startIndex, endIndex);
+        }
+
+        log.info("Recommended {} places in neighborhood {} (category: {}), page: {}/{}, total: {}",
+                pagedContent.size(), neighborhood.getNeighborhoodName(), category, page + 1, totalPages, totalElements);
+
+        // 7. 페이지네이션 응답 DTO 생성
+        return PagedPlaceRecommendationResponseDto.builder()
+                .content(pagedContent)
+                .currentPage(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .hasNext(page < totalPages - 1)
+                .hasPrevious(page > 0)
+                .build();
+    }
+
+    /**
+     * 빈 페이지 응답 생성
+     */
+    private PagedPlaceRecommendationResponseDto createEmptyPage(int page, int size) {
+        return PagedPlaceRecommendationResponseDto.builder()
+                .content(Collections.emptyList())
+                .currentPage(page)
+                .size(size)
+                .totalElements(0)
+                .totalPages(0)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
     }
 
     /**
