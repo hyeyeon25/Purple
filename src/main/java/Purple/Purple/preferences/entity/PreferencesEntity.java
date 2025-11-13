@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -22,33 +23,34 @@ public class PreferencesEntity {
     private UserPersonalInfo user;            // 사용자 식별자 (유니크)
 
     @Column(nullable = false)
-    private int foodPreference;
-
-    @Column(nullable = false)
-    private int desertPreference;
-
-    @Column(nullable = false)
-    private int culturePreference;
-
-    @Column(nullable = false)
-    private int timePreference;
+    private int extrovertPreference;
 
     @Column(nullable = false)
     private boolean indoorPreference;  // true=실내, false=실외
 
+    @ElementCollection
+    @CollectionTable(
+            name = "preference_time",
+            joinColumns = @JoinColumn(name = "preference_id")
+    )
+    @Column(name = "time_code")
+    private List<Integer> timePreferences = new ArrayList<>();
+
     @Column(nullable = false)
-    private boolean extrovertPreference; // true=외향, false=내향
+    private int foodPreference;//음식 선호도
+
+    @Column(nullable = false)
+    private int desertPreference;//디저트 선호드
+
+    @Column(nullable = false)
+    private int activityPreference;//활동 선호도
+
+    @Column(nullable = false)
+    private int culturePreference;//문화 선호도
 
     @Column(columnDefinition = "TEXT")
     private String tagVector; // 사용자 선호도 태그 벡터 (JSON 배열 형식)
 
 }
 
- /*@ElementCollection
-    @CollectionTable(
-            name = "preference_time", // 중복 시간대 저장 테이블
-            joinColumns = @JoinColumn(name = "userid")
-    )
-    @Column(name = "time_code", nullable = false)
-    private List<Integer> timePreference;*/
 
