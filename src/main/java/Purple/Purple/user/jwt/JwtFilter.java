@@ -88,10 +88,13 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicPath(String uri) {
-        return uri.matches("^/api/v1/users/login$") ||
-                uri.matches("^/api/v1/users/signup$") ||
-                uri.matches("^/reissue$") ||
-                uri.matches("^(/swagger-ui|/v3/api-docs|/swagger-resources|/webjars).*$");
+        return uri.equals("/api/v1/users/login") ||
+                uri.equals("/api/v1/users/signup") ||
+                uri.equals("/reissue") ||
+                uri.startsWith("/swagger-ui") ||
+                uri.startsWith("/v3/api-docs") ||
+                uri.startsWith("/swagger-resources") ||
+                uri.startsWith("/webjars");
     }
 
 }

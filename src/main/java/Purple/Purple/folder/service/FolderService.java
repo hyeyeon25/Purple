@@ -12,6 +12,8 @@ import Purple.Purple.place.repository.PlaceRepository;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.repository.UserRepository;
 import Purple.Purple.folder.dto.FolderCreateRequestDto;
+import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
+import Purple.Purple.Neighborhood.repository.NeighborhoodRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,14 +29,31 @@ public class FolderService {
 	private final FolderPlaceRepository folderPlaceRepository;
 	private final UserRepository userRepository;
 	private final PlaceRepository placeRepository;
+	private final NeighborhoodRepository neighborhoodRepository;
 
 	@Transactional
 	public Integer createFolder(FolderCreateRequestDto requestDto, Long userId) {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
+		
+		// 필수 필드 검증
+		if (requestDto.getDate() == null) {
+			throw new IllegalArgumentException("여행 날짜는 필수입니다.");
+		}
+		if (requestDto.getNeighborhoodId() == null) {
+			throw new IllegalArgumentException("동네 ID는 필수입니다.");
+		}
+		
+		// 동네 정보 조회
+		NeighborhoodEntity neighborhood = neighborhoodRepository.findById(requestDto.getNeighborhoodId())
+				.orElseThrow(() -> new IllegalArgumentException("해당 동네를 찾을 수 없습니다. id=" + requestDto.getNeighborhoodId()));
+		
+		// 폴더명 자동 생성: "{여행 날짜} + {여행 동네 이름}"
+		String folderTitle = requestDto.getDate().toString() + " " + neighborhood.getNeighborhoodName();
+		
 		Folder folder = new Folder();
 		folder.setUser(user);
-		folder.setFolderTitle(requestDto.getFolderTitle());
+		folder.setFolderTitle(folderTitle);
 		folder.setDate(requestDto.getDate());
 		Folder saved = folderRepository.save(folder);
 		return saved.getFolderId();

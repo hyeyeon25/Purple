@@ -8,8 +8,8 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor
 public class FolderCreateRequestDto {
-	private String folderTitle;
 	private LocalDate date;
+	private Integer neighborhoodId; // 동네 ID (폴더명 자동 생성에 사용)
 }
 
 
