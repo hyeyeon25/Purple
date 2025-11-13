@@ -22,12 +22,12 @@ public class UserPreferenceRequest {
     @Schema(description = "문화 활동 성향 코드 (예 0~100)", example = "25")
     private int culturePreference;
 
-    @Schema(description = "시간대 성향 코드 (예: 0: 오전, 1: 오후, 2: 밤, 3: 새벽)", example = "2")
-    private int timePreference;
+    @Schema(description = "시간대 성향 코드 (예: 0: 오전, 1: 오후, 2: 밤, 3: 새벽)", example = "[2,3]")
+    private List<Integer> timePreference;
 
     @Schema(description = "실내 선호 여부 (true=실내, false=실외)", example = "true")
     private boolean indoorPreference;
 
-    @Schema(description = "외향 성향 여부 (true=외향, false=내향)", example = "false")
-    private boolean extrovertPreference;
+    @Schema(description = "외향 성향 코드 (0: 매우 외향적, 1: 보통 외향적, 2: 보통 내향적, 3: 매우 내향적)", example = "2")
+    private int extrovertPreference;
 }

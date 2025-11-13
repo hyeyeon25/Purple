@@ -72,7 +72,7 @@ public class UserService {
 //                "access", accessToken,
 //                "refresh", refreshToken
 //        );
-        return new LoginResponse("로그인 성공", accessToken, user.getNickname());
+        return new LoginResponse("로그인 성공", accessToken, user.getNickname(), user.getUserId());
     }
 
     //사용자 정보 조회
