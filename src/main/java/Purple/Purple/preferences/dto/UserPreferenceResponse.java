@@ -16,7 +16,7 @@ public class UserPreferenceResponse {
     private int extrovertPreference;
     private int indoorPreference;
     private List<Integer> timePreference;
-    private int foodPreference;
+    private List<Integer> foodPreference;
     private int desertPreference;
     private int activityPreference;
     private int culturePreference;

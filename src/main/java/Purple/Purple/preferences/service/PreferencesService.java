@@ -44,7 +44,7 @@ public class PreferencesService {
                     return e;
                 });
 
-        entity.setFoodPreference(req.getFoodPreference());
+        entity.setFoodPreferences(req.getFoodPreference());
         entity.setDesertPreference(req.getDesertPreference());
         entity.setCulturePreference(req.getCulturePreference());
         entity.setTimePreferences(req.getTimePreference());
@@ -80,7 +80,7 @@ public class PreferencesService {
     private UserPreferenceResponse toResponse(PreferencesEntity e) {
         return UserPreferenceResponse.builder()
                 .userid(e.getUser().getUserId())
-                .foodPreference(e.getFoodPreference())
+                .foodPreference(e.getFoodPreferences())
                 .desertPreference(e.getDesertPreference())
                 .culturePreference(e.getCulturePreference())
                 .timePreference(e.getTimePreferences())
@@ -98,28 +98,30 @@ public class PreferencesService {
 
         // 1. 음식 선호도 (세분화)
         // foodPreference: 0=한식, 1=양식, 2=일식, 3=중식, 4=아시안, 5=이색/퓨전, 6=분식
-        switch (entity.getFoodPreference()) {
-            case 0:
-                tags.add("한식");
-                break;
-            case 1:
-                tags.add("양식");
-                break;
-            case 2:
-                tags.add("일식");
-                break;
-            case 3:
-                tags.add("중식");
-                break;
-            case 4:
-                tags.add("아시안");
-                break;
-            case 5:
-                tags.add("이색/퓨전");
-                break;
-            case 6:
-                tags.add("분식");
-                break;
+        for (int food : entity.getFoodPreferences()) {
+            switch (food) {
+                case 0:
+                    tags.add("한식");
+                    break;
+                case 1:
+                    tags.add("양식");
+                    break;
+                case 2:
+                    tags.add("일식");
+                    break;
+                case 3:
+                    tags.add("중식");
+                    break;
+                case 4:
+                    tags.add("아시안");
+                    break;
+                case 5:
+                    tags.add("이색/퓨전");
+                    break;
+                case 6:
+                    tags.add("분식");
+                    break;
+            }
         }
 
         // 2. 디저트 선호도 (세분화)
