@@ -23,10 +23,10 @@ public class PreferencesEntity {
     private UserPersonalInfo user;            // 사용자 식별자 (유니크)
 
     @Column(nullable = false)
-    private boolean extrovertPreference; // true=외향, false=내향
+    private int extrovertPreference; // 외향 성향 코드 (0~100, 높을수록 외향적)
 
     @Column(nullable = false)
-    private boolean indoorPreference;  // true=실내, false=실외
+    private int indoorPreference;  // 실내 선호도 코드 (0~100, 높을수록 실내 선호)
 
     @ElementCollection
     @CollectionTable(

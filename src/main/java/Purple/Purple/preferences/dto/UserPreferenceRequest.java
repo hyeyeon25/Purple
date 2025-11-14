@@ -25,11 +25,11 @@ public class UserPreferenceRequest {
     @Schema(description = "시간대 성향 코드 (예: 0: 오전, 1: 오후, 2: 밤, 3: 새벽)", example = "[2,3]")
     private List<Integer> timePreference;
 
-    @Schema(description = "실내 선호 여부 (true=실내, false=실외)", example = "true")
-    private boolean indoorPreference;
+    @Schema(description = "실내 선호도 코드 (0~100, 높을수록 실내 선호)", example = "50")
+    private int indoorPreference;
 
-    @Schema(description = "외향 성향 여부 (true=외향, false=내향)", example = "false")
-    private boolean extrovertPreference;
+    @Schema(description = "외향 성향 코드 (0~100, 높을수록 외향적)", example = "50")
+    private int extrovertPreference;
 
     @Schema(description = "활동 선호도 코드 (예 0~100)", example = "50")
     private int activityPreference;

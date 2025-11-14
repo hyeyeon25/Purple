@@ -37,9 +37,17 @@ public class FolderController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		}
 
-		Long currentUserId = userPersonalInfo.getUserId();
-		Integer id = folderService.createFolder(requestDto, currentUserId);
-		return ResponseEntity.status(HttpStatus.CREATED).body(id);
+		try {
+			Long currentUserId = userPersonalInfo.getUserId();
+			Integer id = folderService.createFolder(requestDto, currentUserId);
+			return ResponseEntity.status(HttpStatus.CREATED).body(id);
+		} catch (IllegalArgumentException e) {
+			// 비즈니스 로직 예외는 400 Bad Request로 반환
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		} catch (Exception e) {
+			// 기타 예외는 500 Internal Server Error로 반환
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 
 	@Operation(summary = "내 폴더 목록 조회", description = "현재 로그인한 사용자의 모든 폴더 목록을 조회합니다.")

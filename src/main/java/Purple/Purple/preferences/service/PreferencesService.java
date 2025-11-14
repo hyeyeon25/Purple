@@ -48,8 +48,8 @@ public class PreferencesService {
         entity.setDesertPreference(req.getDesertPreference());
         entity.setCulturePreference(req.getCulturePreference());
         entity.setTimePreferences(req.getTimePreference());
-        entity.setIndoorPreference(req.isIndoorPreference());
-        entity.setExtrovertPreference(req.isExtrovertPreference());
+        entity.setIndoorPreference(req.getIndoorPreference());
+        entity.setExtrovertPreference(req.getExtrovertPreference());
         entity.setActivityPreference(req.getActivityPreference());
 
         // 선호도를 태그로 변환 후 벡터 생성 및 저장
@@ -84,8 +84,8 @@ public class PreferencesService {
                 .desertPreference(e.getDesertPreference())
                 .culturePreference(e.getCulturePreference())
                 .timePreference(e.getTimePreferences())
-                .indoorPreference(e.isIndoorPreference())
-                .extrovertPreference(e.isExtrovertPreference())
+                .indoorPreference(e.getIndoorPreference())
+                .extrovertPreference(e.getExtrovertPreference())
                 .activityPreference(e.getActivityPreference())
                 .build();
     }
@@ -145,10 +145,13 @@ public class PreferencesService {
             }
         }
 
-        // 4. 실내/실외 선호도
-        if (entity.isIndoorPreference()) {
+        // 4. 실내/실외 선호도 (0~100, 높을수록 실내 선호)
+        int indoorScore = entity.getIndoorPreference();
+        if (indoorScore >= 50) {
+            // 실내 선호 (50~100)
             tags.add("실내");
         } else {
+            // 실외 선호 (0~49)
             tags.add("실외");
             // 실외 선호 시 공원, 산책 태그 추가
             tags.add("공원");
@@ -175,21 +178,35 @@ public class PreferencesService {
             }
         }
 
-        // 6. 외향/내향 선호도
-        if (entity.isExtrovertPreference()) {
-            // 외향적
+        // 6. 외향/내향 선호도 (0~100, 높을수록 외향적) - 5개 구간으로 분류
+        int extrovertScore = entity.getExtrovertPreference();
+        if (extrovertScore >= 80) {
+            // 매우 외향적 (80~100)
             tags.add("친구");
             tags.add("단체");
             tags.add("활기찬");
             tags.add("사람많은");
             tags.add("활동적인");
-        } else {
-            // 내향적
+        } else if (extrovertScore >= 60) {
+            // 외향적 (60~79)
+            tags.add("친구");
+            tags.add("단체");
+            tags.add("활동적인");
+        } else if (extrovertScore >= 40) {
+            // 보통 (40~59)
+            tags.add("친구");
+            tags.add("조용한");
+        } else if (extrovertScore >= 20) {
+            // 내향적 (20~39)
             tags.add("혼자");
             tags.add("조용한");
             tags.add("차분한");
+        } else {
+            // 매우 내향적 (0~19)
+            tags.add("혼자");
             tags.add("고요한");
             tags.add("한적한");
+            tags.add("잔잔한");
         }
 
 

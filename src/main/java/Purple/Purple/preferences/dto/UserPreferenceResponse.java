@@ -17,7 +17,7 @@ public class UserPreferenceResponse {
     private int desertPreference;
     private int culturePreference;
     private List<Integer> timePreference;
-    private boolean indoorPreference;
-    private boolean extrovertPreference;
+    private int indoorPreference;
+    private int extrovertPreference;
     private int activityPreference;
 }
