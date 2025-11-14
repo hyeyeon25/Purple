@@ -39,6 +39,7 @@ public class JwtUtil {
 
     public String createJwt(String category, String email, String role, Long userId, Integer activityPreference, Long expiredMs) {
         var builder = Jwts.builder()
+                .setSubject(String.valueOf(userId != null ? userId : email))  // userId를 subject로 설정
                 .claim("category", category)
                 .claim("email", email)
                 .claim("role", role)

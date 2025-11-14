@@ -67,7 +67,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletResponse response) {
         LoginResponse loginResponse = userService.login(req);
-        
+
         // UserService에서 생성한 refreshToken을 가져오기 위해 user 조회
         UserPersonalInfo user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
