@@ -186,6 +186,11 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             if (category.contains("분식") || category.contains("떡볶이") || category.contains("김밥")) {
                 tags.add("분식");
             }
+            if (category.contains("건강식") || category.contains("샐러드") || category.contains("salad") ||
+                category.contains("비건") || category.contains("vegan") || category.contains("채식") ||
+                category.contains("헬시") || category.contains("healthy")) {
+                tags.add("건강식");
+            }
 
             // 음료/디저트
             if (category.contains("카페") || category.contains("cafe") || category.contains("커피")) {

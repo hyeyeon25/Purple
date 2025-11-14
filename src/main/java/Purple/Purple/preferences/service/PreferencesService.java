@@ -97,7 +97,7 @@ public class PreferencesService {
         List<String> tags = new ArrayList<>();
 
         // 1. 음식 선호도 (세분화)
-        // foodPreference: 0=한식, 1=양식, 2=일식, 3=중식, 4=아시안, 5=이색/퓨전, 6=분식
+        // foodPreference: 0=한식, 1=양식, 2=아시안, 3=이색/퓨전, 4=분식, 5=건강식, 6=카페, 7=주류
         for (int food : entity.getFoodPreferences()) {
             switch (food) {
                 case 0:
@@ -107,19 +107,22 @@ public class PreferencesService {
                     tags.add("양식");
                     break;
                 case 2:
-                    tags.add("일식");
-                    break;
-                case 3:
-                    tags.add("중식");
-                    break;
-                case 4:
                     tags.add("아시안");
                     break;
-                case 5:
+                case 3:
                     tags.add("이색/퓨전");
                     break;
-                case 6:
+                case 4:
                     tags.add("분식");
+                    break;
+                case 5:
+                    tags.add("건강식");
+                    break;
+                case 6:
+                    tags.add("카페");
+                    break;
+                case 7:
+                    tags.add("주류");
                     break;
             }
         }
