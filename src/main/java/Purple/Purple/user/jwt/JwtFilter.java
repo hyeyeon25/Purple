@@ -36,41 +36,58 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String requestUri = request.getRequestURI();
+        log.info("JwtFilter - Request URI: {}", requestUri);
+
         if (isPublicPath(requestUri)) {
+            log.info("JwtFilter - Public path, skipping authentication");
             filterChain.doFilter(request, response);
             return;
         }
 
         String accessToken = request.getHeader("Authorization");
+        log.info("JwtFilter - Authorization header: {}", accessToken != null ? "Bearer ***" : "null");
 
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+            log.warn("JwtFilter - No valid Authorization header, returning 401");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        //accessToken = accessToken.substring(7);
         String token = accessToken.substring(7);
         try {
             jwtUtil.isExpired(token);
         } catch (ExpiredJwtException e) {
+            log.warn("JwtFilter - Token expired, returning 401");
             PrintWriter writer = response.getWriter();
             writer.print("access token expired");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+
         String email = jwtUtil.getUserEmail(token);
         String role = jwtUtil.getRole(token);
+        log.info("JwtFilter - Email: {}, Role: {}", email, role);
 
         UserPersonalInfo user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> {
+                    log.error("JwtFilter - User not found for email: {}", email);
+                    return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+                });
+
+        log.info("JwtFilter - User found: userId={}", user.getUserId());
+
+        // ROLE_ prefix 추가 (Spring Security 표준)
+        String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+        log.info("JwtFilter - Authority set as: {}", roleWithPrefix);
 
         Authentication authToken = new UsernamePasswordAuthenticationToken(
-                user, // Principal 객체로 DB에서 조회한 user 엔티티 사용
+                user,
                 null,
-                Collections.singletonList(new SimpleGrantedAuthority(role))
+                Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix))
         );
 
         SecurityContextHolder.getContext().setAuthentication(authToken);
+        log.info("JwtFilter - Authentication set successfully, proceeding with filter chain");
         filterChain.doFilter(request, response);
 
        /* CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);

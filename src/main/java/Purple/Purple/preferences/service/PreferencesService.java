@@ -50,6 +50,7 @@ public class PreferencesService {
         entity.setTimePreferences(req.getTimePreference());
         entity.setIndoorPreference(req.isIndoorPreference());
         entity.setExtrovertPreference(req.getExtrovertPreference());
+        entity.setActivityPreference(req.getActivityPreference());
 
         // 선호도를 태그로 변환 후 벡터 생성 및 저장
         try {
@@ -85,6 +86,7 @@ public class PreferencesService {
                 .timePreference(e.getTimePreferences())
                 .indoorPreference(e.isIndoorPreference())
                 .extrovertPreference(e.getExtrovertPreference())
+                .activityPreference(e.getActivityPreference())
                 .build();
     }
 
