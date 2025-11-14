@@ -15,14 +15,18 @@ import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RouteService {
@@ -65,11 +69,12 @@ public class RouteService {
 			return List.of();
 		}
 
-		// 폴더에 있는 장소들을 ID 순서대로 자동 경로 생성
-		List<Integer> placeIds = folderPlaces.stream()
-				.map(fp -> fp.getPlace().getPlaceId())
-				.sorted()
+		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
+		List<PlaceEntity> places = folderPlaces.stream()
+				.map(FolderPlace::getPlace)
 				.collect(Collectors.toList());
+		
+		List<Integer> placeIds = generateOptimalRoute(places);
 
 		// Itinerary 생성 또는 가져오기
 		Itinerary itinerary = optionalItinerary.orElseGet(() -> {
@@ -120,30 +125,35 @@ public class RouteService {
 		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
 				.orElseThrow(() -> new IllegalArgumentException("해당 폴더를 찾을 수 없거나 소유자가 아닙니다. id=" + folderId));
 
+		// 폴더에 있는 장소들 조회
+		List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
+		if (folderPlaces.isEmpty()) {
+			throw new IllegalArgumentException("폴더에 장소가 없습니다. 경로를 생성할 수 없습니다.");
+		}
+		
+		Set<Integer> folderPlaceIds = folderPlaces.stream()
+				.map(fp -> fp.getPlace().getPlaceId())
+				.collect(Collectors.toSet());
+		
 		List<Integer> placeIds = requestDto.getPlaceIdsInOrder();
 		
 		// placeIdsInOrder가 없거나 비어있으면 폴더에 있는 모든 장소로 자동 경로 생성
 		if (placeIds == null || placeIds.isEmpty()) {
-			List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
-			if (folderPlaces.isEmpty()) {
-				throw new IllegalArgumentException("폴더에 장소가 없습니다. 경로를 생성할 수 없습니다.");
-			}
-			// 폴더에 있는 장소들을 ID 순서대로 자동 경로 생성
-			placeIds = folderPlaces.stream()
-					.map(fp -> fp.getPlace().getPlaceId())
-					.sorted()
+			// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
+			List<PlaceEntity> places = folderPlaces.stream()
+					.map(FolderPlace::getPlace)
 					.collect(Collectors.toList());
-		}
-
-		// 폴더에 없는 장소는 자동 추가
-		for (Integer placeId : placeIds) {
-			PlaceEntity place = placeRepository.findById(placeId)
-					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
-			if (!folderPlaceRepository.existsByFolderAndPlace(folder, place)) {
-				FolderPlace fp = new FolderPlace();
-				fp.setFolder(folder);
-				fp.setPlace(place);
-				folderPlaceRepository.save(fp);
+			placeIds = generateOptimalRoute(places);
+		} else {
+			// placeIdsInOrder가 제공된 경우: 폴더에 있는 장소들만 포함되어야 함
+			for (Integer placeId : placeIds) {
+				if (!folderPlaceIds.contains(placeId)) {
+					PlaceEntity place = placeRepository.findById(placeId)
+							.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
+					throw new IllegalArgumentException(
+							String.format("장소 '%s' (ID: %d)가 폴더에 없습니다. 경로는 폴더에 있는 장소들만 포함할 수 있습니다.", 
+									place.getPlaceName(), placeId));
+				}
 			}
 		}
 
@@ -180,6 +190,96 @@ public class RouteService {
 				itineraryPlaceRepository.delete(ip);
 			}
 		}
+	}
+
+	/**
+	 * 거리 기반 최적 경로 생성 (Nearest Neighbor 휴리스틱)
+	 * @param places 장소 리스트
+	 * @return 최적 순서의 장소 ID 리스트
+	 */
+	private List<Integer> generateOptimalRoute(List<PlaceEntity> places) {
+		if (places.isEmpty()) {
+			return List.of();
+		}
+		if (places.size() == 1) {
+			return List.of(places.get(0).getPlaceId());
+		}
+
+		log.info("=== 최적 경로 생성 시작 (총 {}개 장소) ===", places.size());
+		
+		// Nearest Neighbor 알고리즘으로 최적 경로 생성
+		List<PlaceEntity> unvisited = new ArrayList<>(places);
+		List<Integer> route = new ArrayList<>();
+		double totalDistance = 0.0;
+		
+		// 첫 번째 장소 선택 (위도/경도가 있는 첫 번째 장소)
+		PlaceEntity current = unvisited.stream()
+				.filter(p -> p.getLatitude() != null && p.getLongitude() != null)
+				.findFirst()
+				.orElse(unvisited.get(0));
+		
+		route.add(current.getPlaceId());
+		unvisited.remove(current);
+		log.info("1. 시작 장소: {} (위도: {}, 경도: {})", 
+				current.getPlaceName(), current.getLatitude(), current.getLongitude());
+		
+		// 가장 가까운 장소를 순차적으로 선택
+		int order = 2;
+		while (!unvisited.isEmpty()) {
+			PlaceEntity nearest = null;
+			double minDist = Double.MAX_VALUE;
+			
+			for (PlaceEntity place : unvisited) {
+				if (place.getLatitude() == null || place.getLongitude() == null) {
+					continue;
+				}
+				double dist = getDistance(current, place);
+				if (dist < minDist) {
+					minDist = dist;
+					nearest = place;
+				}
+			}
+			
+			// 좌표가 없는 장소는 마지막에 추가
+			if (nearest == null) {
+				nearest = unvisited.get(0);
+				minDist = 0.0;
+			}
+			
+			route.add(nearest.getPlaceId());
+			totalDistance += minDist;
+			log.info("{}. 다음 장소: {} (거리: {:.2f}km, 누적: {:.2f}km)", 
+					order++, nearest.getPlaceName(), minDist, totalDistance);
+			
+			unvisited.remove(nearest);
+			current = nearest;
+		}
+		
+		log.info("=== 최적 경로 생성 완료 (총 거리: {:.2f}km) ===", totalDistance);
+		log.info("경로 순서: {}", route);
+		
+		return route;
+	}
+
+	/**
+	 * 두 장소 간의 거리 계산 (Haversine 공식)
+	 * @param a 첫 번째 장소
+	 * @param b 두 번째 장소
+	 * @return 거리 (km)
+	 */
+	private double getDistance(PlaceEntity a, PlaceEntity b) {
+		if (a.getLatitude() == null || a.getLongitude() == null ||
+				b.getLatitude() == null || b.getLongitude() == null) {
+			return Double.MAX_VALUE; // 좌표가 없으면 매우 큰 값 반환
+		}
+		
+		final int R = 6371; // 지구 반경 (km)
+		double latDist = Math.toRadians(b.getLatitude() - a.getLatitude());
+		double lonDist = Math.toRadians(b.getLongitude() - a.getLongitude());
+		double hav = Math.sin(latDist / 2) * Math.sin(latDist / 2)
+				+ Math.cos(Math.toRadians(a.getLatitude())) * Math.cos(Math.toRadians(b.getLatitude()))
+				* Math.sin(lonDist / 2) * Math.sin(lonDist / 2);
+		return R * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav));
 	}
 }
 
