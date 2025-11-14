@@ -1,5 +1,6 @@
 package Purple.Purple.rout.service;
 
+import Purple.Purple.rout.dto.PlaceResponseDto;
 import Purple.Purple.rout.entity.Location;
 import Purple.Purple.rout.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class RouteService {
     private double minDistance;
     private List<String> bestRoute;
 
-    public List<String> findOptimalRoute() {
+    public List<PlaceResponseDto> findOptimalRoute() {
         List<Location> places = locationRepository.findAll();
 
         int n = places.size();
@@ -40,7 +41,23 @@ public class RouteService {
         // DFS 시작
         dfs(places, new ArrayList<>(), 0, 0, 0);
 
-        return bestRoute;
+        List<PlaceResponseDto> result = new ArrayList<>();
+        for(String name : bestRoute) {
+            Location loc = locationRepository.findByName(name).
+                    orElseThrow(() -> new RuntimeException("장소 조회 실패: "+name));
+
+           result.add(
+                    PlaceResponseDto.builder()
+                            .id(String.valueOf(loc.getId()))
+                            .name(loc.getName())
+                            .address(loc.getAddress())
+                            .phone(loc.getPhone())
+                            .mapUrl("https://map.kakao.com/link/map/" + loc.getName() + "," + loc.getLatitude() + "," + loc.getLongitude())
+                            .aiSummary(loc.getAiSummary())
+                            .build()
+            );
+        }
+        return result;
     }
 
     private void dfs(List<Location> places, List<String> path, int depth, double dist, int current) {

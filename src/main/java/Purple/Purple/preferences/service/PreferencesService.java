@@ -47,7 +47,7 @@ public class PreferencesService {
         entity.setFoodPreference(req.getFoodPreference());
         entity.setDesertPreference(req.getDesertPreference());
         entity.setCulturePreference(req.getCulturePreference());
-        entity.setTimePreference(req.getTimePreference());
+        entity.setTimePreferences(req.getTimePreference());
         entity.setIndoorPreference(req.isIndoorPreference());
         entity.setExtrovertPreference(req.isExtrovertPreference());
         entity.setActivityPreference(req.getActivityPreference());
@@ -83,7 +83,7 @@ public class PreferencesService {
                 .foodPreference(e.getFoodPreference())
                 .desertPreference(e.getDesertPreference())
                 .culturePreference(e.getCulturePreference())
-                .timePreference(e.getTimePreference())
+                .timePreference(e.getTimePreferences())
                 .indoorPreference(e.isIndoorPreference())
                 .extrovertPreference(e.isExtrovertPreference())
                 .activityPreference(e.getActivityPreference())
@@ -157,33 +157,41 @@ public class PreferencesService {
 
         // 5. 시간대 선호도 (세분화)
         // timePreference: 0=아침, 1=점심, 2=저녁, 3=밤
-        switch (entity.getTimePreference()) {
-            case 0:
-                tags.add("아침");
-                break;
-            case 1:
-                tags.add("점심");
-                tags.add("오후");
-                break;
-            case 2:
-                tags.add("저녁");
-                break;
-            case 3:
-                tags.add("밤");
-                break;
+        for (int time : entity.getTimePreferences()) {
+            switch (time) {
+                case 0:
+                    tags.add("아침");
+                    break;
+                case 1:
+                    tags.add("점심");
+                    tags.add("오후");
+                    break;
+                case 2:
+                    tags.add("저녁");
+                    break;
+                case 3:
+                    tags.add("밤");
+                    break;
+            }
         }
 
-        // 6. 동행 선호도 (세분화)
+        // 6. 외향/내향 선호도
         if (entity.isExtrovertPreference()) {
-            // 외향적: 친구, 단체 (데이트는 별도 조건으로 추가 가능)
+            // 외향적
             tags.add("친구");
             tags.add("단체");
+            tags.add("활기찬");
+            tags.add("사람많은");
+            tags.add("활동적인");
         } else {
-            // 내향적: 혼자
+            // 내향적
             tags.add("혼자");
-            // 내향적인 사람은 조용한 분위기 선호
             tags.add("조용한");
+            tags.add("차분한");
+            tags.add("고요한");
+            tags.add("한적한");
         }
+
 
         return tags;
     }

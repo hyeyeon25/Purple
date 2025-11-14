@@ -1,6 +1,7 @@
 package Purple.Purple.rout.controller;
 
 
+import Purple.Purple.rout.dto.PlaceResponseDto;
 import Purple.Purple.rout.service.RouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,10 +24,10 @@ public class RouteController {
         this.routeService = routeService;
     }
 
-    @Operation(summary = "최적 경로 계산", description = "DB에 저장된 장소 데이터를 기반으로 최단 거리 경로를 계산합니다.(km단위)")
+    @Operation(summary = "최적 경로 계산",
+            description = "DB의 장소들을 최단 거리 순서로 정렬한 상세 정보 리스트를 반환.")
     @GetMapping("/optimal")
-    public ResponseEntity<List<String>> findOptimalRoute() {
-        List<String> route = routeService.findOptimalRoute();
-        return ResponseEntity.ok(route);
+    public ResponseEntity<List<PlaceResponseDto>> findOptimalRoute() {
+        return ResponseEntity.ok(routeService.findOptimalRoute());
     }
 }

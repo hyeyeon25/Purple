@@ -22,8 +22,8 @@ public class UserPreferenceRequest {
     @Schema(description = "문화 활동 성향 코드 (예 0~100)", example = "25")
     private int culturePreference;
 
-    @Schema(description = "시간대 성향 코드 (예: 0: 오전, 1: 오후, 2: 밤, 3: 새벽)", example = "2")
-    private int timePreference;
+    @Schema(description = "시간대 성향 코드 (예: 0: 오전, 1: 오후, 2: 밤, 3: 새벽)", example = "[2,3]")
+    private List<Integer> timePreference;
 
     @Schema(description = "실내 선호 여부 (true=실내, false=실외)", example = "true")
     private boolean indoorPreference;
