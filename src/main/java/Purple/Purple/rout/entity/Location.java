@@ -17,6 +17,12 @@ public class Location {
     private Long id;
 
     private String name;
-    private double latitude;
-    private double longitude;
+
+    private Double latitude;
+    private Double longitude;
+
+    private String address;   // 주소
+    private String phone;     // 전화번호
+    private String aiSummary; // 요약 설명
+
 }
