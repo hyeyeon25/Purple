@@ -5,9 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,9 +27,15 @@ public class Itinerary {
 	@JoinColumn(name = "folder_id", nullable = false)
 	private Folder folder;
 
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+	@PrePersist
+	protected void onCreate() {
+		if (itineraryGeneratedByAi == null) {
+			itineraryGeneratedByAi = false;
+		}
+	}
+
+	@Column(name = "itinerary_generated_by_ai", nullable = false)
+	private Boolean itineraryGeneratedByAi = false;
 
 	@OneToMany(mappedBy = "itinerary", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("visitOrder ASC")
