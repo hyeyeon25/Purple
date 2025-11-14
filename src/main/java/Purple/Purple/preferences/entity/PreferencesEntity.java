@@ -26,7 +26,7 @@ public class PreferencesEntity {
     private int extrovertPreference; // 외향 성향 코드 (0~100, 높을수록 외향적)
 
     @Column(nullable = false)
-    private int indoorPreference;  // 실내 선호도 코드 (0~100, 높을수록 실내 선호)
+    private boolean indoorPreference;  // 실내 선호도 (true: 실내 선호, false: 실외 선호)
 
     @ElementCollection
     @CollectionTable(

@@ -48,7 +48,7 @@ public class PreferencesService {
         entity.setDesertPreference(req.getDesertPreference());
         entity.setCulturePreference(req.getCulturePreference());
         entity.setTimePreferences(req.getTimePreference());
-        entity.setIndoorPreference(req.getIndoorPreference());
+        entity.setIndoorPreference(req.isIndoorPreference());
         entity.setExtrovertPreference(req.getExtrovertPreference());
         entity.setActivityPreference(req.getActivityPreference());
 
@@ -84,7 +84,7 @@ public class PreferencesService {
                 .desertPreference(e.getDesertPreference())
                 .culturePreference(e.getCulturePreference())
                 .timePreference(e.getTimePreferences())
-                .indoorPreference(e.getIndoorPreference())
+                .indoorPreference(e.isIndoorPreference())
                 .extrovertPreference(e.getExtrovertPreference())
                 .activityPreference(e.getActivityPreference())
                 .build();
@@ -147,13 +147,12 @@ public class PreferencesService {
             }
         }
 
-        // 4. 실내/실외 선호도 (0~100, 높을수록 실내 선호)
-        int indoorScore = entity.getIndoorPreference();
-        if (indoorScore >= 50) {
-            // 실내 선호 (50~100)
+        // 4. 실내/실외 선호도
+        if (entity.isIndoorPreference()) {
+            // 실내 선호
             tags.add("실내");
         } else {
-            // 실외 선호 (0~49)
+            // 실외 선호
             tags.add("실외");
             // 실외 선호 시 공원, 산책 태그 추가
             tags.add("공원");

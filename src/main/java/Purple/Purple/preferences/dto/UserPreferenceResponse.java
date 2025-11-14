@@ -14,7 +14,7 @@ import java.util.List;
 public class UserPreferenceResponse {
     private Long userid;
     private int extrovertPreference;
-    private int indoorPreference;
+    private boolean indoorPreference;
     private List<Integer> timePreference;
     private List<Integer> foodPreference;
     private int desertPreference;
