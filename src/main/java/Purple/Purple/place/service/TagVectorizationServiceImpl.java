@@ -1,5 +1,6 @@
 package Purple.Purple.place.service;
 
+import Purple.Purple.common.constants.TagDictionary;
 import Purple.Purple.place.dto.BatchVectorizationResponseDto;
 import Purple.Purple.place.dto.TagVectorizationRequestDto;
 import Purple.Purple.place.dto.TagVectorizationResponseDto;
@@ -22,14 +23,6 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
 
     private final PlaceRepository placeRepository;
     private final ObjectMapper objectMapper;
-
-    // 고정된 태그 사전 (원-핫 인코딩용)
-    private static final List<String> TAG_DICTIONARY = Arrays.asList(
-            "음식점", "카페", "액티비티", "문화",
-            "실내", "실외",
-            "아침추천", "점심추천", "오후추천", "저녁추천", "밤추천",
-            "데이트", "가족", "친구", "혼자"
-    );
 
     @Override
     @Transactional
@@ -133,7 +126,7 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
     }
 
     /**
-     * PlaceEntity로부터 태그 추출
+     * PlaceEntity로부터 태그 추출 (56개 세분화된 태그 사전 기반)
      */
     private List<String> extractTagsFromPlace(PlaceEntity place) {
         List<String> tags = new ArrayList<>();
@@ -143,35 +136,121 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             tags.add(place.getIsIndoor() ? "실내" : "실외");
         }
 
-        // 추천 시간대
+        // 추천 시간대 (세분화)
         if (place.getRecommendedSlot() != null) {
             switch (place.getRecommendedSlot().toUpperCase()) {
                 case "BREAKFAST":
-                    tags.add("아침추천");
+                    tags.add("아침");
                     break;
                 case "LUNCH":
-                    tags.add("점심추천");
+                    tags.add("점심");
                     break;
                 case "AFTERNOON":
-                    tags.add("오후추천");
+                    tags.add("오후");
                     break;
                 case "DINNER":
-                    tags.add("저녁추천");
+                    tags.add("저녁");
                     break;
                 case "NIGHT":
-                    tags.add("밤추천");
+                    tags.add("밤");
                     break;
             }
         }
 
-        // 카테고리 키워드 분석
+        // 카테고리 키워드 분석 (세분화)
         if (place.getPlaceCategory() != null) {
             String category = place.getPlaceCategory().toLowerCase();
-            if (category.contains("카페") || category.contains("cafe")) {
+
+            // 음식 카테고리
+            if (category.contains("한식") || category.contains("korean")) {
+                tags.add("한식");
+            }
+            if (category.contains("일식") || category.contains("일본") || category.contains("japanese") ||
+                category.contains("스시") || category.contains("라멘")) {
+                tags.add("일식");
+            }
+            if (category.contains("중식") || category.contains("중국") || category.contains("chinese")) {
+                tags.add("중식");
+            }
+            if (category.contains("양식") || category.contains("western") || category.contains("이탈리안") ||
+                category.contains("프랑스") || category.contains("스테이크") || category.contains("파스타")) {
+                tags.add("양식");
+            }
+            if (category.contains("아시안") || category.contains("asian") || category.contains("태국") ||
+                category.contains("베트남") || category.contains("인도")) {
+                tags.add("아시안");
+            }
+            if (category.contains("퓨전") || category.contains("fusion") || category.contains("이색")) {
+                tags.add("이색/퓨전");
+            }
+            if (category.contains("분식") || category.contains("떡볶이") || category.contains("김밥")) {
+                tags.add("분식");
+            }
+
+            // 음료/디저트
+            if (category.contains("카페") || category.contains("cafe") || category.contains("커피")) {
                 tags.add("카페");
             }
-            if (category.contains("음식") || category.contains("식당") || category.contains("레스토랑")) {
-                tags.add("음식점");
+            if (category.contains("디저트") || category.contains("dessert") || category.contains("케이크")) {
+                tags.add("디저트");
+            }
+            if (category.contains("베이커리") || category.contains("bakery") || category.contains("빵")) {
+                tags.add("베이커리");
+            }
+            if (category.contains("술집") || category.contains("이자카야") || category.contains("선술집")) {
+                tags.add("술집");
+            }
+            if (category.contains("바") || category.contains("bar") || category.contains("펜")) {
+                tags.add("바");
+            }
+            if (category.contains("주류") || category.contains("와인") || category.contains("맥주")) {
+                tags.add("주류");
+            }
+
+            // 액티비티/문화
+            if (category.contains("액티비티") || category.contains("activity")) {
+                tags.add("액티비티");
+            }
+            if (category.contains("문화") || category.contains("culture")) {
+                tags.add("문화생활");
+            }
+            if (category.contains("스포츠") || category.contains("sport") || category.contains("운동")) {
+                tags.add("스포츠");
+            }
+            if (category.contains("게임") || category.contains("game") || category.contains("오락")) {
+                tags.add("게임");
+            }
+            if (category.contains("체험") || category.contains("experience")) {
+                tags.add("체험");
+            }
+            if (category.contains("전시") || category.contains("exhibition") || category.contains("갤러리")) {
+                tags.add("전시");
+            }
+            if (category.contains("공연") || category.contains("performance") || category.contains("극장")) {
+                tags.add("공연");
+            }
+            if (category.contains("영화") || category.contains("cinema") || category.contains("theater")) {
+                tags.add("영화관");
+            }
+            if (category.contains("미술관") || category.contains("art museum")) {
+                tags.add("미술관");
+            }
+            if (category.contains("박물관") || category.contains("museum")) {
+                tags.add("박물관");
+            }
+            if (category.contains("서점") || category.contains("bookstore") || category.contains("책방")) {
+                tags.add("서점");
+            }
+
+            // 기타
+            if (category.contains("쇼핑") || category.contains("shopping") || category.contains("마트")) {
+                tags.add("쇼핑");
+            }
+            if (category.contains("공원") || category.contains("park")) {
+                tags.add("공원");
+            }
+            if (category.contains("산책") || category.contains("walk")) {
+                tags.add("산책");
             }
         }
 
@@ -184,7 +263,7 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
     private List<Double> generateVector(List<String> tags) {
         List<Double> vector = new ArrayList<>();
 
-        for (String dictTag : TAG_DICTIONARY) {
+        for (String dictTag : TagDictionary.TAGS) {
             if (tags.contains(dictTag)) {
                 vector.add(1.0);
             } else {

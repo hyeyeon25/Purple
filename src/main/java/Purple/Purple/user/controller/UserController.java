@@ -1,8 +1,12 @@
 package Purple.Purple.user.controller;
 
+import Purple.Purple.preferences.entity.PreferencesEntity;
+import Purple.Purple.preferences.repository.PreferencesRepository;
 import Purple.Purple.user.dto.*;
+import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.jwt.JwtUtil;
 import Purple.Purple.user.repository.RefreshRepository;
+import Purple.Purple.user.repository.UserRepository;
 import Purple.Purple.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +33,7 @@ import java.util.Map;
 @Tag(name = "User", description = "유저 인증 및 관리 API")
 public class UserController {
     private final UserService userService;
+    private final UserRepository userRepository;
     @Operation(summary = "회원가입", description = "회원가입을 처리합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "회원가입 성공"),
@@ -49,6 +54,9 @@ public class UserController {
 
     @Autowired
     private RefreshRepository refreshRepository;
+    
+    @Autowired
+    private PreferencesRepository preferencesRepository;
 
     @Operation(summary = "로그인", description = "로그인을 처리합니다.")
     @ApiResponses(value = {
@@ -58,15 +66,25 @@ public class UserController {
     })
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletResponse response) {
-        //Map<String, String> tokens = userService.login(req);
         LoginResponse loginResponse = userService.login(req);
-
-        //String accessToken = tokens.get("access");
-        //String refreshToken = tokens.get("refresh");
+        
+        // UserService에서 생성한 refreshToken을 가져오기 위해 user 조회
+        UserPersonalInfo user = userRepository.findByEmail(req.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 사용자 선호도 정보 조회 (activityPreference 포함)
+        Integer activityPreference = null;
+        PreferencesEntity preferences = preferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
+        if (preferences != null) {
+            activityPreference = preferences.getActivityPreference();
+        }
+        
         String refreshToken = jwtUtil.createJwt(
                 "refresh",
-                req.getEmail(),
-                "USER", // 필요시 userService.login() 반환값에서 role도 꺼내기
+                user.getEmail(),
+                user.getRole(),
+                user.getUserId(),
+                activityPreference,
                 7 * 24 * 60 * 60 * 1000L
         );
 

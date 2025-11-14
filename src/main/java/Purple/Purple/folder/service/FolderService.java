@@ -14,6 +14,7 @@ import Purple.Purple.user.repository.UserRepository;
 import Purple.Purple.folder.dto.FolderCreateRequestDto;
 import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
 import Purple.Purple.Neighborhood.repository.NeighborhoodRepository;
+import Purple.Purple.itinerery.dto.PlaceAddRequestDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,19 +37,9 @@ public class FolderService {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
 		
-		// 필수 필드 검증
-		if (requestDto.getDate() == null) {
-			throw new IllegalArgumentException("여행 날짜는 필수입니다.");
-		}
-		if (requestDto.getNeighborhoodId() == null) {
-			throw new IllegalArgumentException("동네 ID는 필수입니다.");
-		}
-		
-		// 동네 정보 조회
 		NeighborhoodEntity neighborhood = neighborhoodRepository.findById(requestDto.getNeighborhoodId())
 				.orElseThrow(() -> new IllegalArgumentException("해당 동네를 찾을 수 없습니다. id=" + requestDto.getNeighborhoodId()));
 		
-		// 폴더명 자동 생성: "{여행 날짜} + {여행 동네 이름}"
 		String folderTitle = requestDto.getDate().toString() + " " + neighborhood.getNeighborhoodName();
 		
 		Folder folder = new Folder();
@@ -83,16 +74,51 @@ public class FolderService {
 	}
 
 	@Transactional
-	public Integer addPlaceToFolder(Integer folderId, Integer placeId, Long userId) {
+	public Integer addPlaceToFolder(Integer folderId, PlaceAddRequestDto requestDto, Long userId) {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
 		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
 				.orElseThrow(() -> new IllegalArgumentException("해당 폴더를 찾을 수 없거나 소유자가 아닙니다. id=" + folderId));
-		PlaceEntity place = placeRepository.findById(placeId)
-				.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
+		
+		PlaceEntity place;
+		
+		// placeId가 있으면 기존 장소 사용
+		if (requestDto.getPlaceId() != null) {
+			place = placeRepository.findById(requestDto.getPlaceId())
+					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + requestDto.getPlaceId()));
+		} else {
+			// placeId가 없고 kakaoPlaceId가 있으면 중복 체크 후 생성
+			if (requestDto.getKakaoPlaceId() == null) {
+				throw new IllegalArgumentException("placeId 또는 kakaoPlaceId 중 하나는 필수입니다.");
+			}
+			
+			// 중복 체크
+			place = placeRepository.findByKakaoPlaceId(requestDto.getKakaoPlaceId())
+					.orElseGet(() -> {
+						// 장소가 없으면 생성
+						NeighborhoodEntity neighborhood = neighborhoodRepository.findById(requestDto.getNeighborhoodId())
+								.orElseThrow(() -> new IllegalArgumentException("해당 동네를 찾을 수 없습니다. id=" + requestDto.getNeighborhoodId()));
+						
+						PlaceEntity newPlace = new PlaceEntity();
+						newPlace.setKakaoPlaceId(requestDto.getKakaoPlaceId());
+						newPlace.setPlaceName(requestDto.getPlaceName());
+						newPlace.setPlaceCategory(requestDto.getPlaceCategory());
+						newPlace.setAddress(requestDto.getAddress());
+						newPlace.setLatitude(requestDto.getLatitude());
+						newPlace.setLongitude(requestDto.getLongitude());
+						newPlace.setNeighborhood(neighborhood);
+						newPlace.setIsIndoor(true); // 기본값
+						newPlace.setStayDurationMinutes(60); // 기본값
+						
+						return placeRepository.save(newPlace);
+					});
+		}
+		
+		// 폴더에 이미 담겨 있으면 중복 추가 방지
 		if (folderPlaceRepository.existsByFolderAndPlace(folder, place)) {
 			return folderId; // 이미 담겨 있음
 		}
+		
 		FolderPlace fp = new FolderPlace();
 		fp.setFolder(folder);
 		fp.setPlace(place);

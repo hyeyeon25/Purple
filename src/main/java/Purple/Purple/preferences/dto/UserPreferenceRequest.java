@@ -30,4 +30,7 @@ public class UserPreferenceRequest {
 
     @Schema(description = "외향 성향 여부 (true=외향, false=내향)", example = "false")
     private boolean extrovertPreference;
+
+    @Schema(description = "활동 선호도 코드 (예 0~100)", example = "50")
+    private int activityPreference;
 }

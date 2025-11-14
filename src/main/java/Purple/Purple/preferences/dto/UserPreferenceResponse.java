@@ -19,4 +19,5 @@ public class UserPreferenceResponse {
     private int timePreference;
     private boolean indoorPreference;
     private boolean extrovertPreference;
+    private int activityPreference;
 }

@@ -39,7 +39,11 @@ public class PreferencesEntity {
     @Column(nullable = false)
     private boolean extrovertPreference; // true=외향, false=내향
 
+    @Column(nullable = false)
+    private int activityPreference; // 활동 선호도 코드 (예 0~100)
 
+    @Column(columnDefinition = "TEXT")
+    private String tagVector; // 사용자 선호도 태그 벡터 (JSON 배열 형식)
 
 }
 

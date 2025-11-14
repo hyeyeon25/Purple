@@ -30,13 +30,30 @@ public class JwtUtil {
 
 
     public String createJwt(String category, String email, String role, Long expiredMs) {
-        return Jwts.builder()
+        return createJwt(category, email, role, null, expiredMs);
+    }
+
+    public String createJwt(String category, String email, String role, Long userId, Long expiredMs) {
+        return createJwt(category, email, role, userId, null, expiredMs);
+    }
+
+    public String createJwt(String category, String email, String role, Long userId, Integer activityPreference, Long expiredMs) {
+        var builder = Jwts.builder()
                 .claim("category", category)
                 .claim("email", email)
                 .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + expiredMs));
+        
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+        
+        if (activityPreference != null) {
+            builder.claim("activityPreference", activityPreference);
+        }
+        
+        return builder.signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -79,14 +96,52 @@ public class JwtUtil {
     }
 
     public Long getUserIdFromToken(String token) {
-        return Long.valueOf(
-                Jwts.parserBuilder()
-                        .setSigningKey(getSigningKey())
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody()
-                        .getSubject()
-        );
+        var claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        // userId claim에서 가져오기
+        Object userIdObj = claims.get("userId");
+        if (userIdObj != null) {
+            if (userIdObj instanceof Long) {
+                return (Long) userIdObj;
+            } else if (userIdObj instanceof Integer) {
+                return ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof String) {
+                return Long.valueOf((String) userIdObj);
+            }
+        }
+        
+        // Subject에서 가져오기 (하위 호환성)
+        String subject = claims.getSubject();
+        if (subject != null && !subject.isEmpty()) {
+            return Long.valueOf(subject);
+        }
+        
+        return null;
+    }
+
+    public Integer getActivityPreferenceFromToken(String token) {
+        var claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        Object activityPreferenceObj = claims.get("activityPreference");
+        if (activityPreferenceObj != null) {
+            if (activityPreferenceObj instanceof Integer) {
+                return (Integer) activityPreferenceObj;
+            } else if (activityPreferenceObj instanceof Long) {
+                return ((Long) activityPreferenceObj).intValue();
+            } else if (activityPreferenceObj instanceof String) {
+                return Integer.valueOf((String) activityPreferenceObj);
+            }
+        }
+        
+        return null;
     }
 
     public void isExpired(String token) {

@@ -33,6 +33,10 @@ public class FolderController {
 			@RequestBody FolderCreateRequestDto requestDto,
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
+		if (userPersonalInfo == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+
 		Long currentUserId = userPersonalInfo.getUserId();
 		Integer id = folderService.createFolder(requestDto, currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(id);
@@ -94,22 +98,43 @@ public class FolderController {
 			@RequestBody PlaceAddRequestDto requestDto,
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
+		if (userPersonalInfo == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+
 		Long currentUserId = userPersonalInfo.getUserId();
-		Integer resultFolderId = folderService.addPlaceToFolder(folderId, requestDto.getPlaceId(), currentUserId);
+		Integer resultFolderId = folderService.addPlaceToFolder(folderId, requestDto, currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(resultFolderId);
 	}
 
-	@Operation(summary = "폴더 경로 설정", description = "폴더 내 장소들의 방문 순서를 설정합니다. (각 폴더 당 1개의 경로 유지)")
+	@Operation(summary = "폴더 경로 설정", description = "폴더 내 장소들의 방문 순서를 설정합니다. placeIdsInOrder가 없으면 폴더에 있는 모든 장소로 자동 경로를 생성합니다. (각 폴더 당 1개의 경로 유지)")
 	@ApiResponse(responseCode = "204", description = "경로 설정 성공")
 	@PutMapping("/{folderId}/route")
 	public ResponseEntity<Void> updateFolderRoute(
 			@PathVariable Integer folderId,
-			@RequestBody RouteUpdateRequestDto requestDto,
+			@RequestBody(required = false) RouteUpdateRequestDto requestDto,
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
-		Long currentUserId = userPersonalInfo.getUserId();
-		routeService.putRoute(folderId, requestDto, currentUserId);
-		return ResponseEntity.noContent().build();
+		if (userPersonalInfo == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+
+		try {
+			Long currentUserId = userPersonalInfo.getUserId();
+			// requestDto가 null이면 빈 DTO 생성 (자동 경로 생성)
+			if (requestDto == null) {
+				requestDto = new RouteUpdateRequestDto();
+			}
+			routeService.putRoute(folderId, requestDto, currentUserId);
+			return ResponseEntity.noContent().build();
+		} catch (IllegalArgumentException e) {
+			// 비즈니스 로직 예외는 400 Bad Request로 반환 (에러 메시지 포함)
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(null); // 204와 달리 body는 null이지만 상태 코드로 구분
+		} catch (Exception e) {
+			// 기타 예외는 500 Internal Server Error로 반환
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 
 	@Operation(summary = "폴더 경로 조회", description = "폴더 내 장소들의 현재 방문 순서를 조회합니다.")

@@ -1,6 +1,8 @@
 package Purple.Purple.user.service;
 
 
+import Purple.Purple.preferences.entity.PreferencesEntity;
+import Purple.Purple.preferences.repository.PreferencesRepository;
 import Purple.Purple.user.dto.*;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.jwt.JwtUtil;
@@ -22,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final PreferencesRepository preferencesRepository;
 
 
     @Transactional
@@ -56,14 +59,26 @@ public class UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
+        
+        // 사용자 선호도 정보 조회 (activityPreference 포함)
+        Integer activityPreference = null;
+        PreferencesEntity preferences = preferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
+        if (preferences != null) {
+            activityPreference = preferences.getActivityPreference();
+        }
+        
         String accessToken = jwtUtil.createJwt(
                 "access",
                 user.getEmail(), user.getRole(),
+                user.getUserId(),
+                activityPreference,
                 10 * 60 * 1000L);
 
         String refreshToken = jwtUtil.createJwt(
                 "refresh",
                 user.getEmail(), user.getRole(),
+                user.getUserId(),
+                activityPreference,
                 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
 
         jwtUtil.addRefreshEntity(user.getEmail(), refreshToken, 86400000L);
