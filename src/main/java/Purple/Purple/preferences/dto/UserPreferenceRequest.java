@@ -22,8 +22,8 @@ public class UserPreferenceRequest {
     private List<Integer> timePreference;
 
 
-    @Schema(description = "음식 성향 코드 (예: 0 : 한식, 1 : 양식, 2 : 아시안, 3:이색/퓨전, 4:분식, 5:건강식, 6:주류)", example = "1")
-    private int foodPreference;
+    @Schema(description = "음식 성향 코드 (예: 0 : 한식, 1 : 양식, 2 : 일식, 3 : 중식, 4 : 아시안, 5 : 이색/퓨전, 6 : 분식)", example = "[0,1,2]")
+    private List<Integer> foodPreference;
 
     @Schema(description = "디저트 성향 코드 (예 0~3)", example = "2")
     private int desertPreference;

@@ -36,8 +36,13 @@ public class PreferencesEntity {
     @Column(name = "time_code")
     private List<Integer> timePreferences = new ArrayList<>();
 
-    @Column(nullable = false)
-    private int foodPreference;//음식 선호도
+    @ElementCollection
+    @CollectionTable(
+            name = "preference_food",
+            joinColumns = @JoinColumn(name = "preference_id")
+    )
+    @Column(name = "food_code")
+    private List<Integer> foodPreferences = new ArrayList<>();//음식 선호도
 
     @Column(nullable = false)
     private int desertPreference;//디저트 선호드
