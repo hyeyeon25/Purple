@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -107,36 +108,89 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "로그아웃 성공"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (본인 계정만 로그아웃 가능)"),
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @PostMapping("/{userId}/logout")
-    public ResponseEntity<String> logout(
-            @Parameter(description = "유저 ID", example = "1") @PathVariable Long userId) {
-        return ResponseEntity.ok("User " + userId + " 로그아웃 완료");
+    public ResponseEntity<Void> logout(
+            @Parameter(description = "유저 ID", example = "1") @PathVariable Long userId,
+            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+        
+        if (userPersonalInfo == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // 본인 계정만 로그아웃 가능
+        if (!userPersonalInfo.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        // 로그아웃은 CustomLogoutFilter에서 처리되므로 여기서는 성공 응답만 반환
+        // 실제 refresh 토큰 삭제는 CustomLogoutFilter에서 처리됨
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "회원탈퇴", description = "회원 탈퇴를 처리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "회원탈퇴 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (본인 계정만 삭제 가능)"),
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @DeleteMapping("/{userId}/withdraw")
-    public ResponseEntity<String> withdraw(@PathVariable Long userId) {
-        {
+    public ResponseEntity<Void> withdraw(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+        
+        if (userPersonalInfo == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // 본인 계정만 삭제 가능
+        if (!userPersonalInfo.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        try {
             userService.withdraw(userId);
             return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            // 외래키 제약조건 등 기타 예외
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @Operation(summary = "사용자 정보 조회", description = "사용자 정보를 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (본인 정보만 조회 가능)"),
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @GetMapping("/{userId}/me")
-    public ResponseEntity<UserResponse> getUserInfo(@Parameter(description = "UserID",example = "1")@PathVariable Long userId) {
-        UserResponse response = userService.getUserInfo(userId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UserResponse> getUserInfo(
+            @Parameter(description = "UserID",example = "1")@PathVariable Long userId,
+            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+        
+        if (userPersonalInfo == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // 본인 정보만 조회 가능
+        if (!userPersonalInfo.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        try {
+            UserResponse response = userService.getUserInfo(userId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @Operation(summary = "사용자 정보 수정", description = "사용자 정보를 수정합니다.")
@@ -157,17 +211,38 @@ public class UserController {
     @Operation(summary = "비밀번호 변경", description = "현재 비밀번호 확인 후 새 비밀번호로 변경합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (현재 비밀번호 불일치)"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (본인 계정만 변경 가능)"),
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @PutMapping("/{userId}/password")
     public ResponseEntity<String> changePassword(
             @PathVariable Long userId,
-            @RequestBody PasswordChangeRequest request
+            @RequestBody PasswordChangeRequest request,
+            @AuthenticationPrincipal UserPersonalInfo userPersonalInfo
     ) {
-        userService.changePassword(userId, request);
-        return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        if (userPersonalInfo == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // 본인 계정만 비밀번호 변경 가능
+        if (!userPersonalInfo.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        try {
+            userService.changePassword(userId, request);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            // 현재 비밀번호 불일치 또는 사용자 없음
+            if (e.getMessage().contains("비밀번호")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
 
