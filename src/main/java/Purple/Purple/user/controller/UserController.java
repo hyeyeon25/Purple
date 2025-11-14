@@ -67,6 +67,7 @@ public class UserController {
                 "refresh",
                 req.getEmail(),
                 "USER", // 필요시 userService.login() 반환값에서 role도 꺼내기
+                loginResponse.getUserId(),
                 7 * 24 * 60 * 60 * 1000L
         );
 

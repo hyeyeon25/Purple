@@ -61,14 +61,16 @@ public class ReissueController {
         String newAccessToken = jwtUtil.createJwt(
                 "access",
                 user.getEmail(), // username 대신 email 사용
-                "",              // role은 아직 없으니 빈값
+                user.getRole(),  // role 추가
+                user.getUserId(),
                 10 * 60 * 1000L  // 10분
         );
 
         String newRefreshToken = jwtUtil.createJwt(
                 "refresh",
                 user.getEmail(),
-                "",
+                user.getRole(),  // role 추가
+                user.getUserId(),
                 7 * 24 * 60 * 60 * 1000L
         );
 
