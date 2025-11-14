@@ -29,11 +29,13 @@ public class JwtUtil {
     }
 
 
-    public String createJwt(String category, String email, String role, Long expiredMs) {
+    public String createJwt(String category, String email, String role, Long userId, Long expiredMs) {
         return Jwts.builder()
+                .setSubject(String.valueOf(userId))  // userId를 subject로 설정
                 .claim("category", category)
                 .claim("email", email)
                 .claim("role", role)
+                .claim("userId", userId)  // userId를 claim으로도 추가
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
