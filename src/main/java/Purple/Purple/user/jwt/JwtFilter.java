@@ -36,15 +36,19 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String requestUri = request.getRequestURI();
+        log.info("JwtFilter - Request URI: {}", requestUri);
+
         if (isPublicPath(requestUri)) {
+            log.info("JwtFilter - Public path, skipping authentication");
             filterChain.doFilter(request, response);
             return;
         }
 
         String accessToken = request.getHeader("Authorization");
+        log.info("JwtFilter - Authorization header: {}", accessToken != null ? "Bearer ***" : "null");
 
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
-            log.warn("Authorization 헤더가 없거나 Bearer 토큰 형식이 아닙니다. URI: {}", requestUri);
+            log.warn("JwtFilter - No valid Authorization header, returning 401. URI: {}", requestUri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -68,6 +72,7 @@ public class JwtFilter extends OncePerRequestFilter {
             log.debug("인증 성공: userId={}, email={}, role={}", user.getUserId(), email, role);
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
+            log.warn("JwtFilter - Token expired, returning 401");
             PrintWriter writer = response.getWriter();
             writer.print("access token expired");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

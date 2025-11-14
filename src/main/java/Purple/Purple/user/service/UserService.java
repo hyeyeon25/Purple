@@ -64,19 +64,11 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
         
-        // 사용자 선호도 정보 조회 (activityPreference 포함)
-        Integer activityPreference = null;
-        PreferencesEntity preferences = preferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
-        if (preferences != null) {
-            activityPreference = preferences.getActivityPreference();
-        }
-        
         String accessToken = jwtUtil.createJwt(
                 "access",
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                activityPreference,
                 10 * 60 * 1000L);
 
         String refreshToken = jwtUtil.createJwt(
@@ -84,7 +76,6 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                activityPreference,
                 7 * 24 * 60 * 60 * 1000L);//아직 권한은 추가 안했어욥
 
         jwtUtil.addRefreshEntity(user.getEmail(), refreshToken, 86400000L);

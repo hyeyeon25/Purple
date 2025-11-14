@@ -1,7 +1,5 @@
 package Purple.Purple.user.controller;
 
-import Purple.Purple.preferences.entity.PreferencesEntity;
-import Purple.Purple.preferences.repository.PreferencesRepository;
 import Purple.Purple.user.entity.RefreshEntity;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.jwt.JwtUtil;
@@ -24,7 +22,6 @@ public class ReissueController {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final PreferencesRepository preferencesRepository;
     private RefreshRepository refreshRepository;
 
     @PostMapping("/reissue")
@@ -60,19 +57,11 @@ public class ReissueController {
 
         UserPersonalInfo user = optionalUser.get();
 
-        // 사용자 선호도 정보 조회 (activityPreference 포함)
-        Integer activityPreference = null;
-        PreferencesEntity preferences = preferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
-        if (preferences != null) {
-            activityPreference = preferences.getActivityPreference();
-        }
-
         String newAccessToken = jwtUtil.createJwt(
                 "access",
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                activityPreference,
                 10 * 60 * 1000L  // 10분
         );
 
@@ -81,7 +70,6 @@ public class ReissueController {
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                activityPreference,
                 7 * 24 * 60 * 60 * 1000L
         );
 

@@ -1,7 +1,5 @@
 package Purple.Purple.user.controller;
 
-import Purple.Purple.preferences.entity.PreferencesEntity;
-import Purple.Purple.preferences.repository.PreferencesRepository;
 import Purple.Purple.user.dto.*;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.jwt.JwtUtil;
@@ -55,9 +53,6 @@ public class UserController {
 
     @Autowired
     private RefreshRepository refreshRepository;
-    
-    @Autowired
-    private PreferencesRepository preferencesRepository;
 
     @Operation(summary = "로그인", description = "로그인을 처리합니다.")
     @ApiResponses(value = {
@@ -73,19 +68,11 @@ public class UserController {
         UserPersonalInfo user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         
-        // 사용자 선호도 정보 조회 (activityPreference 포함)
-        Integer activityPreference = null;
-        PreferencesEntity preferences = preferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
-        if (preferences != null) {
-            activityPreference = preferences.getActivityPreference();
-        }
-        
         String refreshToken = jwtUtil.createJwt(
                 "refresh",
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                activityPreference,
                 7 * 24 * 60 * 60 * 1000L
         );
 

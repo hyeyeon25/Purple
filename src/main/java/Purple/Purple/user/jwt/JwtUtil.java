@@ -34,10 +34,6 @@ public class JwtUtil {
     }
 
     public String createJwt(String category, String email, String role, Long userId, Long expiredMs) {
-        return createJwt(category, email, role, userId, null, expiredMs);
-    }
-
-    public String createJwt(String category, String email, String role, Long userId, Integer activityPreference, Long expiredMs) {
         var builder = Jwts.builder()
                 .setSubject(String.valueOf(userId != null ? userId : email))  // userId를 subject로 설정
                 .claim("category", category)
@@ -48,10 +44,6 @@ public class JwtUtil {
         
         if (userId != null) {
             builder.claim("userId", userId);
-        }
-        
-        if (activityPreference != null) {
-            builder.claim("activityPreference", activityPreference);
         }
         
         return builder.signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -124,26 +116,6 @@ public class JwtUtil {
         return null;
     }
 
-    public Integer getActivityPreferenceFromToken(String token) {
-        var claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        
-        Object activityPreferenceObj = claims.get("activityPreference");
-        if (activityPreferenceObj != null) {
-            if (activityPreferenceObj instanceof Integer) {
-                return (Integer) activityPreferenceObj;
-            } else if (activityPreferenceObj instanceof Long) {
-                return ((Long) activityPreferenceObj).intValue();
-            } else if (activityPreferenceObj instanceof String) {
-                return Integer.valueOf((String) activityPreferenceObj);
-            }
-        }
-        
-        return null;
-    }
 
     public void isExpired(String token) {
         Date exp = Jwts.parserBuilder()

@@ -13,11 +13,11 @@ import java.util.List;
 @Schema(description = "성향 조회/응답 DTO")
 public class UserPreferenceResponse {
     private Long userid;
+    private int extrovertPreference;
+    private int indoorPreference;
+    private List<Integer> timePreference;
     private int foodPreference;
     private int desertPreference;
-    private int culturePreference;
-    private List<Integer> timePreference;
-    private int indoorPreference;
-    private int extrovertPreference;
     private int activityPreference;
+    private int culturePreference;
 }
