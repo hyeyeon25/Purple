@@ -128,29 +128,47 @@ public class PreferencesService {
         }
 
         // 2. 디저트 선호도 (세분화)
-        // desertPreference: 50 이상이면 카페/디저트 관련 태그 추가
-        if (entity.getDesertPreference() >= 50) {
-            tags.add("카페");
+        // desertPreference: 0~3 스케일
+        if (entity.getDesertPreference() >= 1) {
+            // 카페는 foodPreference에서 선택되지 않았을 때만 추가 (중복 방지)
+            if (!tags.contains("카페")) {
+                tags.add("카페");
+            }
             tags.add("디저트");
-            // 70 이상이면 베이커리도 추가 (높은 디저트 선호도)
-            if (entity.getDesertPreference() >= 70) {
+            // 2 이상이면 베이커리도 추가 (높은 디저트 선호도)
+            if (entity.getDesertPreference() >= 2) {
                 tags.add("베이커리");
             }
         }
 
         // 3. 문화 선호도 (세분화)
-        // culturePreference: 50 이상이면 문화생활 관련 태그 추가
-        if (entity.getCulturePreference() >= 50) {
+        // culturePreference: 0~3 스케일
+        if (entity.getCulturePreference() >= 1) {
             tags.add("문화생활");
+        }
+        if (entity.getCulturePreference() >= 2) {
             tags.add("전시");
-            // 70 이상이면 더 많은 문화 태그 추가
-            if (entity.getCulturePreference() >= 70) {
-                tags.add("공연");
-                tags.add("미술관");
-            }
+            tags.add("미술관");
+        }
+        if (entity.getCulturePreference() >= 3) {
+            tags.add("공연");
+            tags.add("박물관");
+            tags.add("서점");
         }
 
-        // 4. 실내/실외 선호도
+        // 4. 활동 선호도 (세분화)
+        // activityPreference: 0~3 스케일
+        if (entity.getActivityPreference() >= 1) {
+            tags.add("액티비티");
+        }
+        if (entity.getActivityPreference() >= 2) {
+            tags.add("스포츠");
+        }
+        if (entity.getActivityPreference() >= 3) {
+            tags.add("체험");
+        }
+
+        // 5. 실내/실외 선호도
         if (entity.isIndoorPreference()) {
             tags.add("실내");
         } else {
@@ -181,31 +199,27 @@ public class PreferencesService {
         }
 
         // 6. 동행 선호도 (세분화)
-        switch (entity.getExtrovertPreference()) {//추후 수정해야될 거 같긴해!!
+        switch (entity.getExtrovertPreference()) {
             case 0: // 매우 외향적
                 tags.add("친구");
                 tags.add("단체");
-                tags.add("활기찬");
-                tags.add("사람많은");
+                tags.add("시끌벅적한");
                 break;
 
             case 1: // 보통 외향적
                 tags.add("친구");
                 tags.add("단체");
-                tags.add("활동적인");
                 break;
 
             case 2: // 보통 내향적
                 tags.add("혼자");
                 tags.add("조용한");
-                tags.add("차분한");
                 break;
 
             case 3: // 매우 내향적
                 tags.add("혼자");
-                tags.add("고요한");
-                tags.add("한적한");
-                tags.add("잔잔한");
+                tags.add("조용한");
+                tags.add("편안한");
                 break;
 
             default:

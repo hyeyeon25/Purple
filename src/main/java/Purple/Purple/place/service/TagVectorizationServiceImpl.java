@@ -165,19 +165,15 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             if (category.contains("한식") || category.contains("korean")) {
                 tags.add("한식");
             }
-            if (category.contains("일식") || category.contains("일본") || category.contains("japanese") ||
-                category.contains("스시") || category.contains("라멘")) {
-                tags.add("일식");
-            }
-            if (category.contains("중식") || category.contains("중국") || category.contains("chinese")) {
-                tags.add("중식");
-            }
             if (category.contains("양식") || category.contains("western") || category.contains("이탈리안") ||
                 category.contains("프랑스") || category.contains("스테이크") || category.contains("파스타")) {
                 tags.add("양식");
             }
             if (category.contains("아시안") || category.contains("asian") || category.contains("태국") ||
-                category.contains("베트남") || category.contains("인도")) {
+                category.contains("베트남") || category.contains("인도") ||
+                category.contains("일식") || category.contains("일본") || category.contains("japanese") ||
+                category.contains("스시") || category.contains("라멘") ||
+                category.contains("중식") || category.contains("중국") || category.contains("chinese")) {
                 tags.add("아시안");
             }
             if (category.contains("퓨전") || category.contains("fusion") || category.contains("이색")) {
