@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/preferences")
 @RequiredArgsConstructor
@@ -27,8 +29,18 @@ public class PreferencesController {
     public ResponseEntity<UserPreferenceResponse> savePreferences(
             @PathVariable Long userId,
             @RequestBody UserPreferenceRequest request) {
-        UserPreferenceResponse response = preferencesService.savePreferences(userId, request);
-        return ResponseEntity.ok(response);
+        try {
+            log.info("성향 등록 요청 - userId: {}, request: {}", userId, request);
+            UserPreferenceResponse response = preferencesService.savePreferences(userId, request);
+            log.info("성향 등록 성공 - userId: {}", userId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("성향 등록 실패 - userId: {}, error: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("성향 등록 중 예외 발생 - userId: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @Operation(summary = "성향 조회", description = "사용자의 성향을 조회합니다.")
@@ -38,7 +50,17 @@ public class PreferencesController {
     })
     @GetMapping("/{userId}")
     public ResponseEntity<UserPreferenceResponse> getPreferences(@PathVariable Long userId) {
-        UserPreferenceResponse response = preferencesService.getPreferences(userId);
-        return ResponseEntity.ok(response);
+        try {
+            log.info("성향 조회 요청 - userId: {}", userId);
+            UserPreferenceResponse response = preferencesService.getPreferences(userId);
+            log.info("성향 조회 성공 - userId: {}", userId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("성향 조회 실패 - userId: {}, error: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("성향 조회 중 예외 발생 - userId: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

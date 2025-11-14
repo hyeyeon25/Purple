@@ -37,6 +37,11 @@ public class FolderService {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
 		
+		// neighborhoodId가 0이거나 null인 경우 처리
+		if (requestDto.getNeighborhoodId() == null || requestDto.getNeighborhoodId() == 0) {
+			throw new IllegalArgumentException("유효한 동네 ID가 필요합니다. (neighborhoodId: " + requestDto.getNeighborhoodId() + ")");
+		}
+		
 		NeighborhoodEntity neighborhood = neighborhoodRepository.findById(requestDto.getNeighborhoodId())
 				.orElseThrow(() -> new IllegalArgumentException("해당 동네를 찾을 수 없습니다. id=" + requestDto.getNeighborhoodId()));
 		
