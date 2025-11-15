@@ -29,16 +29,24 @@ public class JwtUtil {
     }
 
 
+    public String createJwt(String category, String email, String role, Long expiredMs) {
+        return createJwt(category, email, role, null, expiredMs);
+    }
+
     public String createJwt(String category, String email, String role, Long userId, Long expiredMs) {
-        return Jwts.builder()
-                .setSubject(String.valueOf(userId))  // userId를 subject로 설정
+        var builder = Jwts.builder()
+                .setSubject(String.valueOf(userId != null ? userId : email))  // userId를 subject로 설정
                 .claim("category", category)
                 .claim("email", email)
                 .claim("role", role)
-                .claim("userId", userId)  // userId를 claim으로도 추가
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + expiredMs));
+        
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+        
+        return builder.signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -81,15 +89,33 @@ public class JwtUtil {
     }
 
     public Long getUserIdFromToken(String token) {
-        return Long.valueOf(
-                Jwts.parserBuilder()
-                        .setSigningKey(getSigningKey())
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody()
-                        .getSubject()
-        );
+        var claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        // userId claim에서 가져오기
+        Object userIdObj = claims.get("userId");
+        if (userIdObj != null) {
+            if (userIdObj instanceof Long) {
+                return (Long) userIdObj;
+            } else if (userIdObj instanceof Integer) {
+                return ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof String) {
+                return Long.valueOf((String) userIdObj);
+            }
+        }
+        
+        // Subject에서 가져오기 (하위 호환성)
+        String subject = claims.getSubject();
+        if (subject != null && !subject.isEmpty()) {
+            return Long.valueOf(subject);
+        }
+        
+        return null;
     }
+
 
     public void isExpired(String token) {
         Date exp = Jwts.parserBuilder()

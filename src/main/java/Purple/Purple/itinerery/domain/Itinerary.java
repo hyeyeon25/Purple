@@ -1,13 +1,11 @@
 package Purple.Purple.itinerery.domain;
 
-import Purple.Purple.user.entity.UserPersonalInfo; // import 변경
+import Purple.Purple.folder.domain.Folder;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,32 +13,31 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "Itinerary")
+@Table(name = "itinerary", uniqueConstraints = {
+		@UniqueConstraint(columnNames = {"folder_id"})
+})
 public class Itinerary {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "itinerary_id")
-    private Integer itineraryId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "itinerary_id")
+	private Integer itineraryId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserPersonalInfo user; // ★★★ User -> UserPersonalInfo 로 타입 변경 ★★★
+	@OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "folder_id", nullable = false)
+	private Folder folder;
 
-    @Column(name = "itinerary_title", nullable = false, length = 100)
-    private String itineraryTitle;
+	@PrePersist
+	protected void onCreate() {
+		if (itineraryGeneratedByAi == null) {
+			itineraryGeneratedByAi = false;
+		}
+	}
 
-    @Column(name = "date")
-    private LocalDate date;
+	@Column(name = "itinerary_generated_by_ai", nullable = false)
+	private Boolean itineraryGeneratedByAi = false;
 
-    @Column(name = "itinerary_generated_by_ai", nullable = false)
-    private boolean itineraryGeneratedByAi;
-
-    @CreationTimestamp
-    @Column(name = "itinerary_created_at", nullable = false, updatable = false)
-    private LocalDateTime itineraryCreatedAt;
-
-    @OneToMany(mappedBy = "itinerary", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("visitOrder ASC")
-    private List<ItineraryPlace> itineraryPlaces = new ArrayList<>();
+	@OneToMany(mappedBy = "itinerary", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OrderBy("visitOrder ASC")
+	private List<ItineraryPlace> itineraryPlaces = new ArrayList<>();
 }

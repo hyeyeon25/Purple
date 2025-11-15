@@ -20,7 +20,4 @@ public class UserPreferenceResponse {
     private int desertPreference;
     private int activityPreference;
     private int culturePreference;
-
-
-
 }
