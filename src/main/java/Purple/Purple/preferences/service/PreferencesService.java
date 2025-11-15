@@ -97,7 +97,7 @@ public class PreferencesService {
         List<String> tags = new ArrayList<>();
 
         // 1. 음식 선호도 (세분화)
-        // foodPreference: 0=한식, 1=양식, 2=일식, 3=중식, 4=아시안, 5=이색/퓨전, 6=분식
+        // foodPreference: 0=한식, 1=양식, 2=아시안, 3=이색/퓨전, 4=분식, 5=건강식, 6=카페, 7=주류
         for (int food : entity.getFoodPreferences()) {
             switch (food) {
                 case 0:
@@ -107,52 +107,71 @@ public class PreferencesService {
                     tags.add("양식");
                     break;
                 case 2:
-                    tags.add("일식");
-                    break;
-                case 3:
-                    tags.add("중식");
-                    break;
-                case 4:
                     tags.add("아시안");
                     break;
-                case 5:
+                case 3:
                     tags.add("이색/퓨전");
                     break;
-                case 6:
+                case 4:
                     tags.add("분식");
+                    break;
+                case 5:
+                    tags.add("건강식");
+                    break;
+                case 6:
+                    tags.add("카페");
+                    break;
+                case 7:
+                    tags.add("주류");
                     break;
             }
         }
 
         // 2. 디저트 선호도 (세분화)
-        // desertPreference: 50 이상이면 카페/디저트 관련 태그 추가
-        if (entity.getDesertPreference() >= 50) {
-            tags.add("카페");
+        // desertPreference: 0~3 스케일
+        if (entity.getDesertPreference() >= 1) {
+            // 카페는 foodPreference에서 선택되지 않았을 때만 추가 (중복 방지)
+            if (!tags.contains("카페")) {
+                tags.add("카페");
+            }
             tags.add("디저트");
-            // 70 이상이면 베이커리도 추가 (높은 디저트 선호도)
-            if (entity.getDesertPreference() >= 70) {
+            // 2 이상이면 베이커리도 추가 (높은 디저트 선호도)
+            if (entity.getDesertPreference() >= 2) {
                 tags.add("베이커리");
             }
         }
 
         // 3. 문화 선호도 (세분화)
-        // culturePreference: 50 이상이면 문화생활 관련 태그 추가
-        if (entity.getCulturePreference() >= 50) {
+        // culturePreference: 0~3 스케일
+        if (entity.getCulturePreference() >= 1) {
             tags.add("문화생활");
+        }
+        if (entity.getCulturePreference() >= 2) {
             tags.add("전시");
-            // 70 이상이면 더 많은 문화 태그 추가
-            if (entity.getCulturePreference() >= 70) {
-                tags.add("공연");
-                tags.add("미술관");
-            }
+            tags.add("미술관");
+        }
+        if (entity.getCulturePreference() >= 3) {
+            tags.add("공연");
+            tags.add("박물관");
+            tags.add("서점");
         }
 
-        // 4. 실내/실외 선호도
+        // 4. 활동 선호도 (세분화)
+        // activityPreference: 0~3 스케일
+        if (entity.getActivityPreference() >= 1) {
+            tags.add("액티비티");
+        }
+        if (entity.getActivityPreference() >= 2) {
+            tags.add("스포츠");
+        }
+        if (entity.getActivityPreference() >= 3) {
+            tags.add("체험");
+        }
+
+        // 5. 실내/실외 선호도
         if (entity.isIndoorPreference()) {
-            // 실내 선호
             tags.add("실내");
         } else {
-            // 실외 선호
             tags.add("실외");
             // 실외 선호 시 공원, 산책 태그 추가
             tags.add("공원");
@@ -179,35 +198,32 @@ public class PreferencesService {
             }
         }
 
-        // 6. 외향/내향 선호도 (0~100, 높을수록 외향적) - 5개 구간으로 분류
-        int extrovertScore = entity.getExtrovertPreference();
-        if (extrovertScore >= 80) {
-            // 매우 외향적 (80~100)
-            tags.add("친구");
-            tags.add("단체");
-            tags.add("활기찬");
-            tags.add("사람많은");
-            tags.add("활동적인");
-        } else if (extrovertScore >= 60) {
-            // 외향적 (60~79)
-            tags.add("친구");
-            tags.add("단체");
-            tags.add("활동적인");
-        } else if (extrovertScore >= 40) {
-            // 보통 (40~59)
-            tags.add("친구");
-            tags.add("조용한");
-        } else if (extrovertScore >= 20) {
-            // 내향적 (20~39)
+        // 6. 동행 선호도 (세분화)
+        // extrovertPreference: 0-100 (낮을수록 내향적, 높을수록 외향적)
+        int extrovert = entity.getExtrovertPreference();
+
+        if (extrovert >= 0 && extrovert <= 25) {
+            // 매우 내향적
             tags.add("혼자");
             tags.add("조용한");
-            tags.add("차분한");
+            tags.add("편안한");
+        } else if (extrovert >= 26 && extrovert <= 50) {
+            // 보통 내향적
+            tags.add("혼자");
+            tags.add("조용한");
+        } else if (extrovert >= 51 && extrovert <= 75) {
+            // 보통 외향적
+            tags.add("친구");
+            tags.add("단체");
+        } else if (extrovert >= 76 && extrovert <= 100) {
+            // 매우 외향적
+            tags.add("친구");
+            tags.add("단체");
+            tags.add("시끌벅적한");
         } else {
-            // 매우 내향적 (0~19)
+            // 범위 밖의 값인 경우 기본값 (보통 내향적)
             tags.add("혼자");
-            tags.add("고요한");
-            tags.add("한적한");
-            tags.add("잔잔한");
+            tags.add("조용한");
         }
 
 

@@ -16,18 +16,17 @@ public class TagDictionary {
      * 순서가 중요합니다 - 벡터의 각 차원은 이 순서와 일치합니다.
      */
     public static final List<String> TAGS = Arrays.asList(
-            // === 음식 (Food) - 7개 ===
+            // === 음식 (Food) - 8개 ===
             "한식",           // Korean food
             "양식",           // Western food
             "아시안",         // Asian food
-            "일식",           // Japanese food
-            "중식",           // Chinese food
             "이색/퓨전",      // Fusion/Unique
             "분식",           // Korean snacks
-
-            // === 음료/주류 (Beverage/Alcohol) - 6개 ===
+            "건강식",         // Healthy food
             "카페",           // Cafe
             "주류",           // Alcohol
+
+            // === 음료/주류 (Beverage/Alcohol) - 4개 ===
             "디저트",         // Dessert
             "베이커리",       // Bakery
             "술집",           // Pub
@@ -128,7 +127,7 @@ public class TagDictionary {
     // === 카테고리별 태그 그룹 (선택적 사용) ===
 
     public static final List<String> FOOD_TAGS = Arrays.asList(
-            "한식", "양식", "아시안", "일식", "중식", "이색/퓨전", "분식"
+            "한식", "양식", "아시안", "이색/퓨전", "분식", "건강식", "카페", "주류"
     );
 
     public static final List<String> BEVERAGE_TAGS = Arrays.asList(
