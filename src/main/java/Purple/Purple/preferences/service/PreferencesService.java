@@ -149,8 +149,10 @@ public class PreferencesService {
 
         // 4. 실내/실외 선호도
         if (entity.isIndoorPreference()) {
+            // 실내 선호
             tags.add("실내");
         } else {
+            // 실외 선호
             tags.add("실외");
             // 실외 선호 시 공원, 산책 태그 추가
             tags.add("공원");
@@ -177,38 +179,35 @@ public class PreferencesService {
             }
         }
 
-        // 6. 동행 선호도 (세분화)
-        switch (entity.getExtrovertPreference()) {//추후 수정해야될 거 같긴해!!
-            case 0: // 매우 외향적
-                tags.add("친구");
-                tags.add("단체");
-                tags.add("활기찬");
-                tags.add("사람많은");
-                break;
-
-            case 1: // 보통 외향적
-                tags.add("친구");
-                tags.add("단체");
-                tags.add("활동적인");
-                break;
-
-            case 2: // 보통 내향적
-                tags.add("혼자");
-                tags.add("조용한");
-                tags.add("차분한");
-                break;
-
-            case 3: // 매우 내향적
-                tags.add("혼자");
-                tags.add("고요한");
-                tags.add("한적한");
-                tags.add("잔잔한");
-                break;
-
-            default:
-                tags.add("혼자");
-                tags.add("조용한");
-                break;
+        // 6. 외향/내향 선호도 (0~100, 높을수록 외향적) - 5개 구간으로 분류
+        int extrovertScore = entity.getExtrovertPreference();
+        if (extrovertScore >= 80) {
+            // 매우 외향적 (80~100)
+            tags.add("친구");
+            tags.add("단체");
+            tags.add("활기찬");
+            tags.add("사람많은");
+            tags.add("활동적인");
+        } else if (extrovertScore >= 60) {
+            // 외향적 (60~79)
+            tags.add("친구");
+            tags.add("단체");
+            tags.add("활동적인");
+        } else if (extrovertScore >= 40) {
+            // 보통 (40~59)
+            tags.add("친구");
+            tags.add("조용한");
+        } else if (extrovertScore >= 20) {
+            // 내향적 (20~39)
+            tags.add("혼자");
+            tags.add("조용한");
+            tags.add("차분한");
+        } else {
+            // 매우 내향적 (0~19)
+            tags.add("혼자");
+            tags.add("고요한");
+            tags.add("한적한");
+            tags.add("잔잔한");
         }
 
 

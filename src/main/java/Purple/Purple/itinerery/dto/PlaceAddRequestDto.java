@@ -7,5 +7,12 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class PlaceAddRequestDto {
-    private Integer placeId;
+    private Integer placeId; // 기존 장소 ID (있으면 사용)
+    private String kakaoPlaceId; // 카카오 장소 ID (중복 체크용)
+    private String placeName;
+    private String placeCategory;
+    private String address;
+    private Double latitude;
+    private Double longitude;
+    private Integer neighborhoodId;
 }

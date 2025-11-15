@@ -42,9 +42,6 @@ public class ItineraryPlace {
     @Column(name = "slot_type", length = 50)
     private SlotType slotType;
 
-    @Lob
-    private String memo;
-
     @CreationTimestamp
     @Column(name = "added_at", updatable = false)
     private LocalDateTime addedAt;

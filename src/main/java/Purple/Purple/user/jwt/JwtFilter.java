@@ -48,7 +48,7 @@ public class JwtFilter extends OncePerRequestFilter {
         log.info("JwtFilter - Authorization header: {}", accessToken != null ? "Bearer ***" : "null");
 
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
-            log.warn("JwtFilter - No valid Authorization header, returning 401");
+            log.warn("JwtFilter - No valid Authorization header, returning 401. URI: {}", requestUri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -56,39 +56,44 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = accessToken.substring(7);
         try {
             jwtUtil.isExpired(token);
+            String email = jwtUtil.getUserEmail(token);
+            String role = jwtUtil.getRole(token);
+
+            UserPersonalInfo user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+            Authentication authToken = new UsernamePasswordAuthenticationToken(
+                    user, // Principal 객체로 DB에서 조회한 user 엔티티 사용
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority(role))
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            log.debug("인증 성공: userId={}, email={}, role={}", user.getUserId(), email, role);
+            filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
             log.warn("JwtFilter - Token expired, returning 401");
             PrintWriter writer = response.getWriter();
             writer.print("access token expired");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        } catch (IllegalArgumentException e) {
+            // 사용자를 찾을 수 없는 경우만 인증 오류로 처리
+            if (e.getMessage().contains("사용자를 찾을 수 없습니다")) {
+                log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            } else {
+                // 다른 IllegalArgumentException은 비즈니스 로직 예외이므로 그대로 전파
+                throw e;
+            }
+        } catch (io.jsonwebtoken.JwtException e) {
+            // JWT 관련 예외만 인증 오류로 처리
+            log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (ServletException | IOException e) {
+            // filterChain.doFilter() 내부에서 발생한 ServletException/IOException은 그대로 전파
+            // (이미 응답이 전송되었을 수 있음)
+            throw e;
         }
-
-        String email = jwtUtil.getUserEmail(token);
-        String role = jwtUtil.getRole(token);
-        log.info("JwtFilter - Email: {}, Role: {}", email, role);
-
-        UserPersonalInfo user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("JwtFilter - User not found for email: {}", email);
-                    return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-                });
-
-        log.info("JwtFilter - User found: userId={}", user.getUserId());
-
-        // ROLE_ prefix 추가 (Spring Security 표준)
-        String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        log.info("JwtFilter - Authority set as: {}", roleWithPrefix);
-
-        Authentication authToken = new UsernamePasswordAuthenticationToken(
-                user,
-                null,
-                Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix))
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-        log.info("JwtFilter - Authentication set successfully, proceeding with filter chain");
-        filterChain.doFilter(request, response);
 
        /* CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);
 
@@ -105,10 +110,13 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicPath(String uri) {
-        return uri.matches("^/api/v1/users/login$") ||
-                uri.matches("^/api/v1/users/signup$") ||
-                uri.matches("^/reissue$") ||
-                uri.matches("^(/swagger-ui|/v3/api-docs|/swagger-resources|/webjars).*$");
+        return uri.equals("/api/v1/users/login") ||
+                uri.equals("/api/v1/users/signup") ||
+                uri.equals("/reissue") ||
+                uri.startsWith("/swagger-ui") ||
+                uri.startsWith("/v3/api-docs") ||
+                uri.startsWith("/swagger-resources") ||
+                uri.startsWith("/webjars");
     }
 
 }

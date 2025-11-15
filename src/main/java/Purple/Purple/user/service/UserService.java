@@ -1,9 +1,13 @@
 package Purple.Purple.user.service;
 
 
+import Purple.Purple.folder.repository.FolderRepository;
+import Purple.Purple.preferences.entity.PreferencesEntity;
+import Purple.Purple.preferences.repository.PreferencesRepository;
 import Purple.Purple.user.dto.*;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import Purple.Purple.user.jwt.JwtUtil;
+import Purple.Purple.user.repository.RefreshRepository;
 import Purple.Purple.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +26,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final PreferencesRepository preferencesRepository;
+    private final FolderRepository folderRepository;
+    private final RefreshRepository refreshRepository;
 
 
     @Transactional
@@ -56,6 +63,7 @@ public class UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
+        
         String accessToken = jwtUtil.createJwt(
                 "access",
                 user.getEmail(),
@@ -112,10 +120,23 @@ public class UserService {
     //회원 탈퇴
     @Transactional
     public void withdraw(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-        }
-        userRepository.deleteById(userId);
+        UserPersonalInfo user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 연관된 데이터 삭제
+        // 1. Preferences 삭제
+        preferencesRepository.findByUser_UserId(userId).ifPresent(preferencesRepository::delete);
+        
+        // 2. Folder 삭제 (CASCADE로 Itinerary, FolderPlace도 자동 삭제됨)
+        folderRepository.findAllByUserOrderByFolderCreatedAtDesc(user).forEach(folderRepository::delete);
+        
+        // 3. Refresh 토큰 삭제 (username = email)
+        refreshRepository.findAll().stream()
+                .filter(refresh -> refresh.getUsername().equals(user.getEmail()))
+                .forEach(refreshRepository::delete);
+        
+        // 4. 사용자 삭제
+        userRepository.delete(user);
     }
 
 

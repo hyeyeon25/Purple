@@ -23,10 +23,10 @@ public class PreferencesEntity {
     private UserPersonalInfo user;            // 사용자 식별자 (유니크)
 
     @Column(nullable = false)
-    private int extrovertPreference;
+    private int extrovertPreference; // 외향 성향 코드 (0~100, 높을수록 외향적)
 
     @Column(nullable = false)
-    private boolean indoorPreference;  // true=실내, false=실외
+    private boolean indoorPreference;  // 실내 선호도 (true: 실내 선호, false: 실외 선호)
 
     @ElementCollection
     @CollectionTable(
@@ -45,13 +45,13 @@ public class PreferencesEntity {
     private List<Integer> foodPreferences = new ArrayList<>();//음식 선호도
 
     @Column(nullable = false)
-    private int desertPreference;//디저트 선호드
-
-    @Column(nullable = false)
-    private int activityPreference;//활동 선호도
+    private int desertPreference;//디저트 선호도
 
     @Column(nullable = false)
     private int culturePreference;//문화 선호도
+
+    @Column(nullable = false)
+    private int activityPreference; // 활동 선호도 코드 (예 0~100)
 
     @Column(columnDefinition = "TEXT")
     private String tagVector; // 사용자 선호도 태그 벡터 (JSON 배열 형식)

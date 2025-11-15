@@ -97,11 +97,20 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
      * 벡터 기반 동네 추천 (내부 로직)
      */
     private List<NeighborhoodRecommendationResponseDto> recommendNeighborhoodsWithVector(List<Double> normalizedUserVector) {
-        log.debug("User preference vector (normalized): {}", normalizedUserVector);
+        log.info("User preference vector (normalized) size: {}", normalizedUserVector.size());
 
         // 2. 모든 동네 조회
         List<NeighborhoodEntity> allNeighborhoods = neighborhoodRepository.findAll();
+        log.info("Total neighborhoods found: {}", allNeighborhoods.size());
+        
+        if (allNeighborhoods.isEmpty()) {
+            log.warn("No neighborhoods found in database");
+            return Collections.emptyList();
+        }
+
         List<NeighborhoodRecommendationResponseDto> recommendations = new ArrayList<>();
+        int neighborhoodsWithNoPlaces = 0;
+        int neighborhoodsWithNoTagVectors = 0;
 
         // 3. 각 동네별 평균 유사도 점수 계산
         for (NeighborhoodEntity neighborhood : allNeighborhoods) {
@@ -109,15 +118,24 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             List<PlaceEntity> places = placeRepository.findByNeighborhood(neighborhood);
 
             if (places.isEmpty()) {
-                log.debug("Neighborhood {} has no places, skipping", neighborhood.getNeighborhoodName());
+                log.debug("Neighborhood {} (ID: {}) has no places, skipping", 
+                        neighborhood.getNeighborhoodName(), neighborhood.getNeighborhoodId());
+                neighborhoodsWithNoPlaces++;
                 continue;
             }
 
+            log.debug("Neighborhood {} (ID: {}) has {} places", 
+                    neighborhood.getNeighborhoodName(), neighborhood.getNeighborhoodId(), places.size());
+
             // 각 장소와의 코사인 유사도 계산
             List<Double> similarityScores = new ArrayList<>();
+            int placesWithNoTagVector = 0;
+            
             for (PlaceEntity place : places) {
                 if (place.getTagVector() == null || place.getTagVector().isEmpty()) {
-                    log.debug("Place {} has no tag vector, skipping", place.getPlaceName());
+                    log.debug("Place {} (ID: {}) has no tag vector, skipping", 
+                            place.getPlaceName(), place.getPlaceId());
+                    placesWithNoTagVector++;
                     continue;
                 }
 
@@ -126,8 +144,16 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
                     double similarity = calculateCosineSimilarity(normalizedUserVector, placeVector);
                     similarityScores.add(similarity);
                 } catch (Exception e) {
-                    log.warn("Failed to parse vector for place {}: {}", place.getPlaceName(), e.getMessage());
+                    log.warn("Failed to parse vector for place {} (ID: {}): {}", 
+                            place.getPlaceName(), place.getPlaceId(), e.getMessage());
+                    placesWithNoTagVector++;
                 }
+            }
+
+            if (placesWithNoTagVector == places.size()) {
+                log.debug("Neighborhood {} (ID: {}) has {} places but none have tag vectors", 
+                        neighborhood.getNeighborhoodName(), neighborhood.getNeighborhoodId(), places.size());
+                neighborhoodsWithNoTagVectors++;
             }
 
             // 평균 유사도 점수 계산
@@ -149,6 +175,9 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             }
         }
 
+        log.info("Recommendation summary: {} neighborhoods processed, {} with no places, {} with no tag vectors, {} valid recommendations",
+                allNeighborhoods.size(), neighborhoodsWithNoPlaces, neighborhoodsWithNoTagVectors, recommendations.size());
+
         // 4. 평균 유사도 점수 기준 내림차순 정렬 후 Top 3 선택
         List<NeighborhoodRecommendationResponseDto> top3 = recommendations.stream()
                 .sorted(Comparator.comparing(NeighborhoodRecommendationResponseDto::getAverageSimilarityScore).reversed())
@@ -160,10 +189,17 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             top3.get(i).setRank(i + 1);
         }
 
-        log.info("Top 3 neighborhoods recommended: {}",
-                top3.stream()
-                        .map(NeighborhoodRecommendationResponseDto::getNeighborhoodName)
-                        .collect(Collectors.toList()));
+        if (top3.isEmpty()) {
+            log.warn("No neighborhoods could be recommended. Possible reasons: " +
+                    "1) No neighborhoods in database, " +
+                    "2) No places in any neighborhood, " +
+                    "3) No places have tag vectors");
+        } else {
+            log.info("Top 3 neighborhoods recommended: {}",
+                    top3.stream()
+                            .map(NeighborhoodRecommendationResponseDto::getNeighborhoodName)
+                            .collect(Collectors.toList()));
+        }
 
         return top3;
     }
