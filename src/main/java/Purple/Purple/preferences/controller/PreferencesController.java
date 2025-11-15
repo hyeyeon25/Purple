@@ -30,6 +30,13 @@ public class PreferencesController {
             @PathVariable Long userId,
             @RequestBody UserPreferenceRequest request) {
         try {
+            // extrovertPreference 유효성 검증 (0-100 범위)
+            if (request.getExtrovertPreference() < 0 || request.getExtrovertPreference() > 100) {
+                log.error("성향 등록 실패 - userId: {}, extrovertPreference 범위 초과: {}",
+                        userId, request.getExtrovertPreference());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
             log.info("성향 등록 요청 - userId: {}, request: {}", userId, request);
             UserPreferenceResponse response = preferencesService.savePreferences(userId, request);
             log.info("성향 등록 성공 - userId: {}", userId);

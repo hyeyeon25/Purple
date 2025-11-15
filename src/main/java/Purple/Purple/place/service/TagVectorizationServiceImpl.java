@@ -27,7 +27,6 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
     @Override
     @Transactional
     public TagVectorizationResponseDto vectorizeSinglePlace(Integer placeId, TagVectorizationRequestDto requestDto) {
-        log.info("Starting vectorization for place ID: {}", placeId);
 
         PlaceEntity place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new IllegalArgumentException("장소를 찾을 수 없습니다. ID: " + placeId));
@@ -165,19 +164,15 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             if (category.contains("한식") || category.contains("korean")) {
                 tags.add("한식");
             }
-            if (category.contains("일식") || category.contains("일본") || category.contains("japanese") ||
-                category.contains("스시") || category.contains("라멘")) {
-                tags.add("일식");
-            }
-            if (category.contains("중식") || category.contains("중국") || category.contains("chinese")) {
-                tags.add("중식");
-            }
             if (category.contains("양식") || category.contains("western") || category.contains("이탈리안") ||
                 category.contains("프랑스") || category.contains("스테이크") || category.contains("파스타")) {
                 tags.add("양식");
             }
             if (category.contains("아시안") || category.contains("asian") || category.contains("태국") ||
-                category.contains("베트남") || category.contains("인도")) {
+                category.contains("베트남") || category.contains("인도") ||
+                category.contains("일식") || category.contains("일본") || category.contains("japanese") ||
+                category.contains("스시") || category.contains("라멘") ||
+                category.contains("중식") || category.contains("중국") || category.contains("chinese")) {
                 tags.add("아시안");
             }
             if (category.contains("퓨전") || category.contains("fusion") || category.contains("이색")) {
@@ -185,6 +180,11 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             }
             if (category.contains("분식") || category.contains("떡볶이") || category.contains("김밥")) {
                 tags.add("분식");
+            }
+            if (category.contains("건강식") || category.contains("샐러드") || category.contains("salad") ||
+                category.contains("비건") || category.contains("vegan") || category.contains("채식") ||
+                category.contains("헬시") || category.contains("healthy")) {
+                tags.add("건강식");
             }
 
             // 음료/디저트
