@@ -12,7 +12,7 @@ import java.util.List;
 @Setter
 @Schema(description = "성향 등록 요청 DTO")
 public class UserPreferenceRequest {
-    @Schema(description = "외향 성향 코드 (0: 매우 외향적, 1: 보통 외향적, 2: 보통 내향적, 3: 매우 내향적)", example = "2")
+    @Schema(description = "외향 성향 코드 (0-100, 낮을수록 내향적, 높을수록 외향적)", example = "50")
     private int extrovertPreference;
 
     @Schema(description = "실내 선호 여부 (true=실내, false=실외)", example = "true")

@@ -199,33 +199,31 @@ public class PreferencesService {
         }
 
         // 6. 동행 선호도 (세분화)
-        switch (entity.getExtrovertPreference()) {
-            case 0: // 매우 외향적
-                tags.add("친구");
-                tags.add("단체");
-                tags.add("시끌벅적한");
-                break;
+        // extrovertPreference: 0-100 (낮을수록 내향적, 높을수록 외향적)
+        int extrovert = entity.getExtrovertPreference();
 
-            case 1: // 보통 외향적
-                tags.add("친구");
-                tags.add("단체");
-                break;
-
-            case 2: // 보통 내향적
-                tags.add("혼자");
-                tags.add("조용한");
-                break;
-
-            case 3: // 매우 내향적
-                tags.add("혼자");
-                tags.add("조용한");
-                tags.add("편안한");
-                break;
-
-            default:
-                tags.add("혼자");
-                tags.add("조용한");
-                break;
+        if (extrovert >= 0 && extrovert <= 25) {
+            // 매우 내향적
+            tags.add("혼자");
+            tags.add("조용한");
+            tags.add("편안한");
+        } else if (extrovert >= 26 && extrovert <= 50) {
+            // 보통 내향적
+            tags.add("혼자");
+            tags.add("조용한");
+        } else if (extrovert >= 51 && extrovert <= 75) {
+            // 보통 외향적
+            tags.add("친구");
+            tags.add("단체");
+        } else if (extrovert >= 76 && extrovert <= 100) {
+            // 매우 외향적
+            tags.add("친구");
+            tags.add("단체");
+            tags.add("시끌벅적한");
+        } else {
+            // 범위 밖의 값인 경우 기본값 (보통 내향적)
+            tags.add("혼자");
+            tags.add("조용한");
         }
 
 
