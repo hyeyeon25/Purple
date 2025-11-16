@@ -52,4 +52,7 @@ public class PlaceRecommendationResponseDto {
 
     @Schema(description = "평균 체류 시간 (분)", example = "90")
     private Integer stayDurationMinutes;
+
+    @Schema(description = "장소 요약 설명", example = "조용한 분위기에서 커피를 즐길 수 있는 카페입니다.")
+    private String summary;
 }
