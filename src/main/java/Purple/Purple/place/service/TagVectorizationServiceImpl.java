@@ -27,7 +27,6 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
     @Override
     @Transactional
     public TagVectorizationResponseDto vectorizeSinglePlace(Integer placeId, TagVectorizationRequestDto requestDto) {
-        log.info("Starting vectorization for place ID: {}", placeId);
 
         PlaceEntity place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new IllegalArgumentException("장소를 찾을 수 없습니다. ID: " + placeId));
