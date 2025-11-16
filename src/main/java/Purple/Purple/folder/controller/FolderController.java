@@ -5,6 +5,7 @@ import Purple.Purple.folder.service.FolderService;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -130,5 +131,38 @@ public class FolderController {
 		Long currentUserId = userPersonalInfo.getUserId();
 		Integer resultFolderId = folderService.addPlaceToFolder(folderId, requestDto.getPlaceId(), currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED).body(resultFolderId);
+	}
+
+	@Operation(summary = "폴더에서 장소 삭제", description = "지정한 폴더에서 장소를 삭제합니다. 폴더에서 삭제하면 경로(itinerary)에서도 자동으로 제거됩니다.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "204", description = "장소 삭제 성공"),
+			@ApiResponse(responseCode = "400", description = "잘못된 요청"),
+			@ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+			@ApiResponse(responseCode = "404", description = "폴더 또는 장소를 찾을 수 없음")
+	})
+	@DeleteMapping("/{folderId}/places/{placeId}")
+	public ResponseEntity<Void> removePlaceFromFolder(
+			@PathVariable Integer folderId,
+			@PathVariable Integer placeId,
+			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
+
+		if (userPersonalInfo == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+
+		try {
+			Long currentUserId = userPersonalInfo.getUserId();
+			folderService.removePlaceFromFolder(folderId, placeId, currentUserId);
+			return ResponseEntity.noContent().build();
+		} catch (IllegalArgumentException e) {
+			log.error("폴더에서 장소 삭제 실패 - folderId: {}, placeId: {}, error: {}", folderId, placeId, e.getMessage());
+			if (e.getMessage() != null && e.getMessage().contains("찾을 수 없")) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+			}
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		} catch (Exception e) {
+			log.error("폴더에서 장소 삭제 중 예외 발생 - folderId: {}, placeId: {}", folderId, placeId, e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 }
