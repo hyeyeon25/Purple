@@ -35,6 +35,9 @@ public class Folder {
 	@Column(name = "date")
 	private LocalDate date;
 
+	@Column(name = "neighborhood_id")
+	private Integer neighborhoodId;
+
 	@CreationTimestamp
 	@Column(name = "folder_created_at", nullable = false, updatable = false)
 	private LocalDateTime folderCreatedAt;

@@ -65,6 +65,7 @@ public class FolderService {
 		folder.setUser(user);
 		folder.setFolderTitle(folderTitle);
 		folder.setDate(date);
+		folder.setNeighborhoodId(requestDto.getNeighborhoodId());
 		Folder saved = folderRepository.save(folder);
 		
 		// 선택한 장소들을 폴더에 추가
