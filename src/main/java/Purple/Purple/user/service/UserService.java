@@ -128,7 +128,7 @@ public class UserService {
         preferencesRepository.findByUser_UserId(userId).ifPresent(preferencesRepository::delete);
         
         // 2. Folder 삭제 (CASCADE로 Itinerary, FolderPlace도 자동 삭제됨)
-        folderRepository.findAllByUserOrderByFolderCreatedAtDesc(user).forEach(folderRepository::delete);
+        folderRepository.findAllByUserOrderByFolderIdDesc(user).forEach(folderRepository::delete);
         
         // 3. Refresh 토큰 삭제 (username = email)
         refreshRepository.findAll().stream()

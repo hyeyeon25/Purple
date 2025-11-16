@@ -252,7 +252,7 @@ public class FolderService {
 	public List<FolderSummaryResponseDto> listMyFolders(Long userId) {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
-		return folderRepository.findAllByUserOrderByFolderCreatedAtDesc(user).stream()
+		return folderRepository.findAllByUserOrderByFolderIdDesc(user).stream()
 				.map(FolderSummaryResponseDto::new)
 				.collect(Collectors.toList());
 	}
