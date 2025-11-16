@@ -7,7 +7,6 @@ import Purple.Purple.folder.repository.FolderPlaceRepository;
 import Purple.Purple.folder.repository.FolderRepository;
 import Purple.Purple.itinerery.domain.Itinerary;
 import Purple.Purple.itinerery.domain.ItineraryPlace;
-import Purple.Purple.itinerery.dto.RouteUpdateRequestDto;
 import Purple.Purple.itinerery.repository.ItineraryPlaceRepository;
 import Purple.Purple.itinerery.repository.ItineraryRepository;
 import Purple.Purple.place.entity.PlaceEntity;
@@ -18,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RouteService {
+public class ItineraryService {
 
 	private final FolderRepository folderRepository;
 	private final FolderPlaceRepository folderPlaceRepository;
@@ -37,6 +37,7 @@ public class RouteService {
 	private final ItineraryPlaceRepository itineraryPlaceRepository;
 	private final UserRepository userRepository;
 	private final PlaceRepository placeRepository;
+	private final EntityManager entityManager;
 
 	@Transactional
 	public List<Integer> getRoute(Integer folderId, Long userId) {
@@ -255,8 +256,14 @@ public class RouteService {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * 사용자가 수동으로 변경한 일정 순서를 저장합니다.
+	 * @param folderId 폴더 ID
+	 * @param placeIds 방문 순서대로 정렬된 장소 ID 리스트
+	 * @param userId 사용자 ID
+	 */
 	@Transactional
-	public void putRoute(Integer folderId, RouteUpdateRequestDto requestDto, Long userId) {
+	public void updateItineraryOrder(Integer folderId, List<Integer> placeIds, Long userId) {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
 		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
@@ -265,7 +272,7 @@ public class RouteService {
 		// 폴더에 있는 장소들 조회
 		List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
 		if (folderPlaces.isEmpty()) {
-			throw new IllegalArgumentException("폴더에 장소가 없습니다. 경로를 생성할 수 없습니다.");
+			throw new IllegalArgumentException("폴더에 장소가 없습니다.");
 		}
 		
 		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
@@ -273,11 +280,22 @@ public class RouteService {
 			fp.getPlace().getPlaceId(); // Place 초기화
 		}
 		
-		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
-		List<PlaceEntity> places = folderPlaces.stream()
-				.map(FolderPlace::getPlace)
+		// 폴더에 있는 장소 ID 목록
+		List<Integer> folderPlaceIds = folderPlaces.stream()
+				.map(fp -> fp.getPlace().getPlaceId())
 				.collect(Collectors.toList());
-		List<Integer> placeIds = generateOptimalRoute(places);
+		
+		// 폴더에 있는 장소인지 검증
+		for (Integer placeId : placeIds) {
+			if (!folderPlaceIds.contains(placeId)) {
+				throw new IllegalArgumentException("폴더에 없는 장소가 포함되어 있습니다. placeId: " + placeId);
+			}
+		}
+		
+		// 폴더의 모든 장소가 포함되었는지 확인
+		if (placeIds.size() != folderPlaceIds.size() || !folderPlaceIds.containsAll(placeIds)) {
+			throw new IllegalArgumentException("폴더의 모든 장소를 포함해야 하며, 폴더에 없는 장소는 포함할 수 없습니다.");
+		}
 
 		// 폴더당 단일 경로(Itinerary) 보장
 		Itinerary itinerary = itineraryRepository.findByFolder(folder)
@@ -330,6 +348,106 @@ public class RouteService {
 				itineraryPlaceRepository.delete(ip);
 			}
 		}
+	}
+
+	/**
+	 * 경로 추천 재생성 - 기존 경로를 무시하고 거리 기반 최적 경로를 새로 생성합니다.
+	 * @param folderId 폴더 ID
+	 * @param userId 사용자 ID
+	 * @return 새로 생성된 경로의 상세 정보
+	 */
+	@Transactional
+	public List<FolderPlaceResponseDto> regenerateRecommendedRoute(Integer folderId, Long userId) {
+		UserPersonalInfo user = userRepository.findById(userId)
+				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
+		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
+				.orElseThrow(() -> new IllegalArgumentException("해당 폴더를 찾을 수 없거나 소유자가 아닙니다. id=" + folderId));
+
+		// 폴더에 있는 장소들 조회
+		List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
+		if (folderPlaces.isEmpty()) {
+			throw new IllegalArgumentException("폴더에 장소가 없습니다. 경로를 생성할 수 없습니다.");
+		}
+
+		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
+		for (FolderPlace fp : folderPlaces) {
+			fp.getPlace().getPlaceId(); // Place 초기화
+		}
+
+		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
+		List<PlaceEntity> places = folderPlaces.stream()
+				.map(FolderPlace::getPlace)
+				.collect(Collectors.toList());
+		List<Integer> placeIds = generateOptimalRoute(places);
+
+		// 폴더당 단일 경로(Itinerary) 보장
+		Itinerary itinerary = itineraryRepository.findByFolder(folder)
+				.orElseGet(() -> {
+					Itinerary it = new Itinerary();
+					it.setFolder(folder);
+					it.setItineraryGeneratedByAi(false);
+					return itineraryRepository.save(it);
+				});
+
+		// 기존 ItineraryPlace 조회
+		List<ItineraryPlace> existingItineraryPlaces = itineraryPlaceRepository.findByItinerary(itinerary);
+		
+		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
+		for (ItineraryPlace ip : existingItineraryPlaces) {
+			ip.getPlace().getPlaceId(); // Place 초기화
+		}
+		
+		// 기존 ItineraryPlace를 Map으로 변환 (placeId -> ItineraryPlace)
+		Map<Integer, ItineraryPlace> existingMap;
+		try {
+			existingMap = existingItineraryPlaces.stream()
+					.collect(Collectors.toMap(ip -> ip.getPlace().getPlaceId(), ip -> ip, (existing, replacement) -> existing));
+		} catch (IllegalStateException e) {
+			log.error("중복된 placeId가 발견되었습니다. folderId: {}", folderId, e);
+			throw new IllegalArgumentException("경로에 중복된 장소가 있습니다.", e);
+		}
+
+		// 새로운 ItineraryPlace 생성 및 visitOrder 설정
+		int order = 1;
+		for (Integer placeId : placeIds) {
+			PlaceEntity place = placeRepository.findById(placeId)
+					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
+			
+			ItineraryPlace ip = existingMap.get(placeId);
+			if (ip == null) {
+				// 기존에 없으면 새로 생성
+				ip = new ItineraryPlace();
+				ip.setItinerary(itinerary);
+				ip.setPlace(place);
+				ip.setVisitOrder(order);
+				itineraryPlaceRepository.save(ip);
+			} else {
+				// 기존에 있으면 visitOrder만 업데이트
+				ip.setVisitOrder(order);
+				itineraryPlaceRepository.save(ip);
+			}
+			order++;
+		}
+
+		// 새로운 경로에 포함되지 않은 기존 ItineraryPlace는 삭제
+		for (ItineraryPlace ip : existingItineraryPlaces) {
+			if (!placeIds.contains(ip.getPlace().getPlaceId())) {
+				itineraryPlaceRepository.delete(ip);
+			}
+		}
+		
+		// 영속성 컨텍스트를 플러시하여 DB에 즉시 반영
+		entityManager.flush();
+
+		// 최종 경로를 FolderPlaceResponseDto 리스트로 변환하여 반환
+		return itineraryPlaceRepository.findByItinerary(itinerary).stream()
+				.sorted(Comparator.comparing(ip -> ip.getVisitOrder() == null ? 0 : ip.getVisitOrder()))
+				.map(ip -> {
+					FolderPlace fp = new FolderPlace();
+					fp.setPlace(ip.getPlace());
+					return new FolderPlaceResponseDto(fp);
+				})
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -422,5 +540,4 @@ public class RouteService {
 		return R * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav));
 	}
 }
-
 

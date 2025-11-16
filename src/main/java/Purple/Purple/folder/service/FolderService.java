@@ -3,6 +3,10 @@ package Purple.Purple.folder.service;
 import Purple.Purple.folder.domain.Folder;
 import Purple.Purple.folder.domain.FolderPlace;
 import Purple.Purple.folder.repository.FolderPlaceRepository;
+import Purple.Purple.itinerery.domain.Itinerary;
+import Purple.Purple.itinerery.domain.ItineraryPlace;
+import Purple.Purple.itinerery.repository.ItineraryPlaceRepository;
+import Purple.Purple.itinerery.repository.ItineraryRepository;
 import Purple.Purple.folder.repository.FolderRepository;
 import Purple.Purple.folder.dto.FolderSummaryResponseDto;
 import Purple.Purple.folder.dto.FolderUpdateRequestDto;
@@ -32,6 +36,8 @@ public class FolderService {
 	private final UserRepository userRepository;
 	private final PlaceRepository placeRepository;
 	private final NeighborhoodRepository neighborhoodRepository;
+	private final ItineraryRepository itineraryRepository;
+	private final ItineraryPlaceRepository itineraryPlaceRepository;
 
 	@Transactional
 	public Integer createFolder(FolderCreateRequestDto requestDto, Long userId) {
@@ -119,10 +125,43 @@ public class FolderService {
 			return folderId; // 이미 담겨 있음
 		}
 		
+		// 폴더에 장소 추가
 		FolderPlace fp = new FolderPlace();
 		fp.setFolder(folder);
 		fp.setPlace(place);
 		folderPlaceRepository.save(fp);
+		
+		// Itinerary가 있으면 마지막 순서로 추가
+		Itinerary itinerary = itineraryRepository.findByFolder(folder).orElse(null);
+		if (itinerary != null) {
+			// 기존 ItineraryPlace 조회하여 최대 visitOrder 찾기
+			List<ItineraryPlace> existingPlaces = itineraryPlaceRepository.findByItinerary(itinerary);
+			
+			// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
+			for (ItineraryPlace ip : existingPlaces) {
+				ip.getPlace().getPlaceId(); // Place 초기화
+			}
+			
+			int maxOrder = existingPlaces.stream()
+					.filter(ip -> ip.getVisitOrder() != null)
+					.mapToInt(ItineraryPlace::getVisitOrder)
+					.max()
+					.orElse(0);
+			
+			// 이미 itinerary에 있는지 확인
+			boolean alreadyExists = existingPlaces.stream()
+					.anyMatch(ip -> ip.getPlace().getPlaceId().equals(placeId));
+			
+			if (!alreadyExists) {
+				// 마지막 순서로 추가
+				ItineraryPlace ip = new ItineraryPlace();
+				ip.setItinerary(itinerary);
+				ip.setPlace(place);
+				ip.setVisitOrder(maxOrder + 1);
+				itineraryPlaceRepository.save(ip);
+			}
+		}
+		
 		return folderId;
 	}
 
@@ -136,7 +175,30 @@ public class FolderService {
 				.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
 		FolderPlace fp = folderPlaceRepository.findByFolderAndPlace(folder, place)
 				.orElseThrow(() -> new IllegalArgumentException("폴더에 없는 장소입니다."));
+		
+		// 폴더에서 장소 삭제
 		folderPlaceRepository.delete(fp);
+		
+		// Itinerary가 있으면 경로에서도 삭제
+		Itinerary itinerary = itineraryRepository.findByFolder(folder).orElse(null);
+		if (itinerary != null) {
+			List<ItineraryPlace> itineraryPlaces = itineraryPlaceRepository.findByItinerary(itinerary);
+			
+			// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
+			for (ItineraryPlace ip : itineraryPlaces) {
+				ip.getPlace().getPlaceId(); // Place 초기화
+			}
+			
+			// 해당 장소를 찾아서 삭제
+			ItineraryPlace toRemove = itineraryPlaces.stream()
+					.filter(ip -> ip.getPlace().getPlaceId().equals(placeId))
+					.findFirst()
+					.orElse(null);
+			
+			if (toRemove != null) {
+				itineraryPlaceRepository.delete(toRemove);
+			}
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -146,10 +208,20 @@ public class FolderService {
 		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
 				.orElseThrow(() -> new IllegalArgumentException("해당 폴더를 찾을 수 없거나 소유자가 아닙니다. id=" + folderId));
 		
-		// LAZY 로딩을 위해 폴더 플레이스와 이티너리를 미리 로드
-		folder.getFolderPlaces().size(); // LAZY 초기화
+		// LAZY 로딩을 위해 폴더 플레이스와 Place 엔티티를 미리 로드
+		List<FolderPlace> folderPlaces = folder.getFolderPlaces();
+		for (FolderPlace fp : folderPlaces) {
+			// Place 엔티티를 명시적으로 초기화
+			fp.getPlace().getPlaceId();
+		}
+		
+		// Itinerary와 ItineraryPlace도 초기화
 		if (folder.getItinerary() != null) {
-			folder.getItinerary().getItineraryPlaces().size(); // LAZY 초기화
+			List<ItineraryPlace> itineraryPlaces = folder.getItinerary().getItineraryPlaces();
+			for (ItineraryPlace ip : itineraryPlaces) {
+				// Place 엔티티를 명시적으로 초기화
+				ip.getPlace().getPlaceId();
+			}
 		}
 		
 		return new FolderDetailResponseDto(folder);
