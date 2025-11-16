@@ -15,6 +15,7 @@ public class FolderDetailResponseDto {
 	private Integer folderId;
 	private String folderTitle;
 	private LocalDate date;
+	private Integer neighborhoodId;
 	private List<FolderPlaceResponseDto> places;
 	private List<Integer> routePlaceIdsInOrder;
 
@@ -22,6 +23,7 @@ public class FolderDetailResponseDto {
 		this.folderId = folder.getFolderId();
 		this.folderTitle = folder.getFolderTitle();
 		this.date = folder.getDate();
+		this.neighborhoodId = folder.getNeighborhoodId();
 		this.places = folder.getFolderPlaces().stream()
 				.map(FolderPlaceResponseDto::new)
 				.collect(Collectors.toList());
