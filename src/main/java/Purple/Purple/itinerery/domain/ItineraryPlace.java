@@ -6,8 +6,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import java.time.LocalDateTime;
 
 /**
  * A join table entity that links a Place to an Itinerary,
@@ -41,8 +39,4 @@ public class ItineraryPlace {
     @Enumerated(EnumType.STRING)
     @Column(name = "slot_type", length = 50)
     private SlotType slotType;
-
-    @CreationTimestamp
-    @Column(name = "added_at", updatable = false)
-    private LocalDateTime addedAt;
 }

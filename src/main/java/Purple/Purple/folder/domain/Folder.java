@@ -6,10 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,10 +34,6 @@ public class Folder {
 
 	@Column(name = "neighborhood_id")
 	private Integer neighborhoodId;
-
-	@CreationTimestamp
-	@Column(name = "folder_created_at", nullable = false, updatable = false)
-	private LocalDateTime folderCreatedAt;
 
 	@OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<FolderPlace> folderPlaces = new ArrayList<>();
