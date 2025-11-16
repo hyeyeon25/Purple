@@ -69,77 +69,9 @@ public class ItineraryService {
 			}
 		}
 
-		// 경로가 없거나 비어있으면 자동 생성
-		List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
-		if (folderPlaces.isEmpty()) {
-			return List.of();
-		}
-
-		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
-		for (FolderPlace fp : folderPlaces) {
-			fp.getPlace().getPlaceId(); // Place 초기화
-		}
-
-		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
-		List<PlaceEntity> places = folderPlaces.stream()
-				.map(FolderPlace::getPlace)
-				.collect(Collectors.toList());
-		
-		List<Integer> placeIds = generateOptimalRoute(places);
-
-		// Itinerary 생성 또는 가져오기
-		Itinerary itinerary = optionalItinerary.orElseGet(() -> {
-			Itinerary it = new Itinerary();
-			it.setFolder(folder);
-			it.setItineraryGeneratedByAi(false);
-			return itineraryRepository.save(it);
-		});
-
-		// 기존 ItineraryPlace 조회
-		List<ItineraryPlace> existingPlaces = itineraryPlaceRepository.findByItinerary(itinerary);
-		
-		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
-		for (ItineraryPlace ip : existingPlaces) {
-			ip.getPlace().getPlaceId(); // Place 초기화
-		}
-		
-		Map<Integer, ItineraryPlace> existingMap;
-		try {
-			existingMap = existingPlaces.stream()
-					.collect(Collectors.toMap(ip -> ip.getPlace().getPlaceId(), ip -> ip, (existing, replacement) -> existing));
-		} catch (IllegalStateException e) {
-			log.error("중복된 placeId가 발견되었습니다. folderId: {}", folderId, e);
-			throw new IllegalArgumentException("경로에 중복된 장소가 있습니다.", e);
-		}
-
-		// ItineraryPlace 생성 및 visitOrder 설정
-		int order = 1;
-		for (Integer placeId : placeIds) {
-			PlaceEntity place = placeRepository.findById(placeId)
-					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
-			
-			ItineraryPlace ip = existingMap.get(placeId);
-			if (ip == null) {
-				ip = new ItineraryPlace();
-				ip.setItinerary(itinerary);
-				ip.setPlace(place);
-				ip.setVisitOrder(order);
-				itineraryPlaceRepository.save(ip);
-			} else {
-				ip.setVisitOrder(order);
-				itineraryPlaceRepository.save(ip);
-			}
-			order++;
-		}
-
-		// 폴더에 없는 기존 경로 아이템은 제거
-		for (ItineraryPlace ip : existingPlaces) {
-			if (!placeIds.contains(ip.getPlace().getPlaceId())) {
-				itineraryPlaceRepository.delete(ip);
-			}
-		}
-
-		return placeIds;
+		// 경로가 없거나 비어있으면 폴더 생성 시 저장된 순서 반환 (최단 경로 자동 생성하지 않음)
+		// 경로 추천 API를 호출해야만 최단 경로가 생성됨
+		return List.of();
 	}
 
 	@Transactional
@@ -175,85 +107,9 @@ public class ItineraryService {
 			}
 		}
 
-		// 경로가 없거나 비어있으면 자동 생성
-		List<FolderPlace> folderPlaces = folderPlaceRepository.findAllByFolder(folder);
-		if (folderPlaces.isEmpty()) {
-			return List.of();
-		}
-
-		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
-		for (FolderPlace fp : folderPlaces) {
-			fp.getPlace().getPlaceId(); // Place 초기화
-		}
-
-		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
-		List<PlaceEntity> places = folderPlaces.stream()
-				.map(FolderPlace::getPlace)
-				.collect(Collectors.toList());
-		
-		List<Integer> placeIds = generateOptimalRoute(places);
-
-		// Itinerary 생성 또는 가져오기
-		Itinerary itinerary = optionalItinerary.orElseGet(() -> {
-			Itinerary it = new Itinerary();
-			it.setFolder(folder);
-			it.setItineraryGeneratedByAi(false);
-			return itineraryRepository.save(it);
-		});
-
-		// 기존 ItineraryPlace 조회
-		List<ItineraryPlace> existingPlaces = itineraryPlaceRepository.findByItinerary(itinerary);
-		
-		// LAZY 로딩 문제 해결: Place 엔티티를 명시적으로 초기화
-		for (ItineraryPlace ip : existingPlaces) {
-			ip.getPlace().getPlaceId(); // Place 초기화
-		}
-		
-		Map<Integer, ItineraryPlace> existingMap;
-		try {
-			existingMap = existingPlaces.stream()
-					.collect(Collectors.toMap(ip -> ip.getPlace().getPlaceId(), ip -> ip, (existing, replacement) -> existing));
-		} catch (IllegalStateException e) {
-			log.error("중복된 placeId가 발견되었습니다. folderId: {}", folderId, e);
-			throw new IllegalArgumentException("경로에 중복된 장소가 있습니다.", e);
-		}
-
-		// ItineraryPlace 생성 및 visitOrder 설정
-		int order = 1;
-		for (Integer placeId : placeIds) {
-			PlaceEntity place = placeRepository.findById(placeId)
-					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
-			
-			ItineraryPlace ip = existingMap.get(placeId);
-			if (ip == null) {
-				ip = new ItineraryPlace();
-				ip.setItinerary(itinerary);
-				ip.setPlace(place);
-				ip.setVisitOrder(order);
-				itineraryPlaceRepository.save(ip);
-			} else {
-				ip.setVisitOrder(order);
-				itineraryPlaceRepository.save(ip);
-			}
-			order++;
-		}
-
-		// 폴더에 없는 기존 경로 아이템은 제거
-		for (ItineraryPlace ip : existingPlaces) {
-			if (!placeIds.contains(ip.getPlace().getPlaceId())) {
-				itineraryPlaceRepository.delete(ip);
-			}
-		}
-
-		// 최종 경로를 FolderPlaceResponseDto 리스트로 변환
-		return itineraryPlaceRepository.findByItinerary(itinerary).stream()
-				.sorted(Comparator.comparing(ip -> ip.getVisitOrder() == null ? 0 : ip.getVisitOrder()))
-				.map(ip -> {
-					FolderPlace fp = new FolderPlace();
-					fp.setPlace(ip.getPlace());
-					return new FolderPlaceResponseDto(fp);
-				})
-				.collect(Collectors.toList());
+		// 경로가 없거나 비어있으면 폴더 생성 시 저장된 순서 반환 (최단 경로 자동 생성하지 않음)
+		// 경로 추천 API를 호출해야만 최단 경로가 생성됨
+		return List.of();
 	}
 
 	/**
@@ -375,9 +231,16 @@ public class ItineraryService {
 		}
 
 		// 폴더에 있는 장소들을 거리 기반 최적 경로로 자동 생성
+		// placeId가 0이거나 null인 경우 필터링
 		List<PlaceEntity> places = folderPlaces.stream()
 				.map(FolderPlace::getPlace)
+				.filter(place -> place != null && place.getPlaceId() != null && place.getPlaceId() != 0)
 				.collect(Collectors.toList());
+		
+		if (places.isEmpty()) {
+			throw new IllegalArgumentException("유효한 장소가 없습니다. 경로를 생성할 수 없습니다.");
+		}
+		
 		List<Integer> placeIds = generateOptimalRoute(places);
 
 		// 폴더당 단일 경로(Itinerary) 보장
@@ -410,6 +273,12 @@ public class ItineraryService {
 		// 새로운 ItineraryPlace 생성 및 visitOrder 설정
 		int order = 1;
 		for (Integer placeId : placeIds) {
+			// placeId가 0이거나 null이면 건너뛰기 (500 에러 방지)
+			if (placeId == null || placeId == 0) {
+				log.warn("유효하지 않은 placeId 발견: {}, 건너뜁니다.", placeId);
+				continue;
+			}
+			
 			PlaceEntity place = placeRepository.findById(placeId)
 					.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
 			
