@@ -1,15 +1,15 @@
 <div align="center">
 
+<img width="2000" alt="image" src="https://github.com/user-attachments/assets/b2f85a18-5f0f-4d6d-9037-3b71de806053" />
 <!-- 로고 이미지 -->
-<img width="200" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
 
 # Tripick
 
+<img width="200" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
 **Team Purple**
 
 여행 일정을 쉽고 스마트하게 계획하세요
 
-<img width="2000" alt="image" src="https://github.com/user-attachments/assets/b2f85a18-5f0f-4d6d-9037-3b71de806053" />
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
