@@ -1,0 +1,42 @@
+package Purple.Purple.itinerery.domain;
+
+import Purple.Purple.folder.SlotType;
+import Purple.Purple.place.entity.PlaceEntity;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * A join table entity that links a Place to an Itinerary,
+ * defining the path's sequence and details.
+ */
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@Table(name = "Itinerary_Place", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"itinerary_id", "place_id"})
+})
+public class ItineraryPlace {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "itinerary_place_id")
+    private Integer itineraryPlaceId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "itinerary_id", nullable = false)
+    private Itinerary itinerary;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "place_id", nullable = false)
+    private PlaceEntity place;
+
+    @Column(name = "visit_order")
+    private Integer visitOrder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "slot_type", length = 50)
+    private SlotType slotType;
+}
