@@ -57,7 +57,8 @@
 
 ## Architecture
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/a201e567-88e3-4a77-bf44-995c6bf5b68a" />
+### System Architecture
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/a201e567-88e3-4a77-bf44-995c6bf5b68a" />
 
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/60cfeabe-64a5-417b-9011-46320bccb4b1" />
