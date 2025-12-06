@@ -3,9 +3,9 @@
 <img width="2000" alt="image" src="https://github.com/user-attachments/assets/b2f85a18-5f0f-4d6d-9037-3b71de806053" />
 <!-- 로고 이미지 -->
 
-# Tripick
-
 <img width="200" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
+
+
 **Team Purple**
 
 여행 일정을 쉽고 스마트하게 계획하세요
