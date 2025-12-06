@@ -65,11 +65,24 @@ public class FolderService {
 		folder.setUser(user);
 		folder.setFolderTitle(folderTitle);
 		folder.setDate(date);
+		folder.setNeighborhoodId(requestDto.getNeighborhoodId());
 		Folder saved = folderRepository.save(folder);
 		
-		// 선택한 장소들을 폴더에 추가
+		// 선택한 장소들을 폴더에 추가 (사용자가 선택한 순서대로)
 		if (requestDto.getPlaceIds() != null && !requestDto.getPlaceIds().isEmpty()) {
+			// Itinerary 생성 (폴더 생성 시 순서 저장을 위해)
+			Itinerary itinerary = new Itinerary();
+			itinerary.setFolder(saved);
+			itinerary.setItineraryGeneratedByAi(false);
+			Itinerary savedItinerary = itineraryRepository.save(itinerary);
+			
+			int order = 1;
 			for (Integer placeId : requestDto.getPlaceIds()) {
+				// placeId가 0이거나 null이면 건너뛰기
+				if (placeId == null || placeId == 0) {
+					continue;
+				}
+				
 				PlaceEntity place = placeRepository.findById(placeId)
 						.orElseThrow(() -> new IllegalArgumentException("해당 장소를 찾을 수 없습니다. id=" + placeId));
 				
@@ -80,6 +93,14 @@ public class FolderService {
 					fp.setPlace(place);
 					folderPlaceRepository.save(fp);
 				}
+				
+				// ItineraryPlace 생성 (사용자가 선택한 순서대로 visitOrder 저장)
+				ItineraryPlace ip = new ItineraryPlace();
+				ip.setItinerary(savedItinerary);
+				ip.setPlace(place);
+				ip.setVisitOrder(order);
+				itineraryPlaceRepository.save(ip);
+				order++;
 			}
 		}
 		
@@ -231,7 +252,7 @@ public class FolderService {
 	public List<FolderSummaryResponseDto> listMyFolders(Long userId) {
 		UserPersonalInfo user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. id=" + userId));
-		return folderRepository.findAllByUserOrderByFolderCreatedAtDesc(user).stream()
+		return folderRepository.findAllByUserOrderByFolderIdDesc(user).stream()
 				.map(FolderSummaryResponseDto::new)
 				.collect(Collectors.toList());
 	}

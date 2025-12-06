@@ -28,7 +28,7 @@ public class FolderController {
 	@Operation(summary = "폴더 생성", description = "새 여행 폴더를 생성합니다. 폴더 이름과 선택한 장소들을 함께 지정할 수 있습니다.")
 	@ApiResponse(responseCode = "201", description = "폴더 생성 성공")
 	@PostMapping
-	public ResponseEntity<Integer> createFolder(
+	public ResponseEntity<?> createFolder(
 			@RequestBody FolderCreateRequestDto requestDto,
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
@@ -38,14 +38,23 @@ public class FolderController {
 
 		try {
 			Long currentUserId = userPersonalInfo.getUserId();
+			log.info("폴더 생성 요청 - userId: {}, date: {}, neighborhoodId: {}, placeIds: {}", 
+					currentUserId, requestDto.getDate(), requestDto.getNeighborhoodId(), requestDto.getPlaceIds());
 			Integer id = folderService.createFolder(requestDto, currentUserId);
+			log.info("폴더 생성 성공 - folderId: {}, userId: {}", id, currentUserId);
 			return ResponseEntity.status(HttpStatus.CREATED).body(id);
 		} catch (IllegalArgumentException e) {
+			log.error("폴더 생성 실패 - IllegalArgumentException: userId: {}, error: {}", 
+					userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e.getMessage(), e);
 			// 비즈니스 로직 예외는 400 Bad Request로 반환
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "잘못된 요청입니다."));
 		} catch (Exception e) {
+			log.error("폴더 생성 중 예외 발생 - userId: {}, exception: {}", 
+					userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e.getClass().getName(), e);
 			// 기타 예외는 500 Internal Server Error로 반환
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(java.util.Map.of("error", "서버 내부 오류가 발생했습니다: " + e.getMessage()));
 		}
 	}
 

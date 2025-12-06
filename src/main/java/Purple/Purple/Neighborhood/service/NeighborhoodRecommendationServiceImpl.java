@@ -338,6 +338,7 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
                         .isIndoor(place.getIsIndoor())
                         .recommendedSlot(place.getRecommendedSlot())
                         .stayDurationMinutes(place.getStayDurationMinutes())
+                        .summary(place.getSummary())
                         .build();
 
                 recommendations.add(dto);
