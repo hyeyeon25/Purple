@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- 로고 이미지 (나중에 경로 수정) -->
-<img src="./assets/logo.png" alt="Tripick Logo" width="200"/>
+<img width="587" height="246" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
 
 # Tripick
 
@@ -24,7 +24,7 @@
 | <img src="https://github.com/identicons/eunhye.png" width="100"/> | <img src="https://github.com/identicons/sohee.png" width="100"/> | <img src="https://github.com/identicons/hyeyeon.png" width="100"/> |
 |:---:|:---:|:---:|
 | **탁은혜** | **문소희** | **조혜연** |
-| [@github](https://github.com/) | [@github](https://github.com/) | [@github](https://github.com/) |
+| [@github]([https://github.com/](https://github.com/2unhy2)) | [@github]([https://github.com/](https://github.com/soheesgit)) | [@github]([https://github.com/](https://github.com/hyeyeon25)) |
 
 ### Frontend
 
