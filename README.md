@@ -1,7 +1,7 @@
 <div align="center">
 
-<!-- 로고 이미지 (나중에 경로 수정) -->
-<img width="587" height="246" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
+<!-- 로고 이미지 -->
+<img width="200" alt="image" src="https://github.com/user-attachments/assets/c20e1db2-93bd-44bf-8dfe-debb638300de" />
 
 # Tripick
 
@@ -21,17 +21,17 @@
 
 ### Backend
 
-| <img src="https://github.com/identicons/eunhye.png" width="100"/> | <img src="https://github.com/identicons/sohee.png" width="100"/> | <img src="https://github.com/identicons/hyeyeon.png" width="100"/> |
+| <img src="https://github.com/2unhy2.png" width="100"/> | <img src="https://github.com/soheesgit.png" width="100"/> | <img src="https://github.com/hyeyeon25.png" width="100"/> |
 |:---:|:---:|:---:|
 | **탁은혜** | **문소희** | **조혜연** |
-| [@github]([https://github.com/](https://github.com/2unhy2)) | [@github]([https://github.com/](https://github.com/soheesgit)) | [@github]([https://github.com/](https://github.com/hyeyeon25)) |
+| [@github](https://github.com/2unhy2) | [@github](https://github.com/soheesgit) | [@github](https://github.com/hyeyeon25) |
 
 ### Frontend
 
-| <img src="https://github.com/identicons/juok.png" width="100"/> |
+| <img src="https://github.com/identicons/gNswnd4dl" width="100"/> |
 |:---:|
 | **김주옥** |
-| [@github](https://github.com/) |
+| [@github](https://github.com/gNswnd4dl) |
 
 ---
 
@@ -54,8 +54,7 @@
 
 ## Architecture
 
-<!-- 아키텍처 다이어그램 추가 예정 -->
-<img src="./assets/architecture.png" alt="Architecture Diagram" width="800"/>
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/a201e567-88e3-4a77-bf44-995c6bf5b68a" />
 
 ---
 
