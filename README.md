@@ -9,6 +9,8 @@
 
 여행 일정을 쉽고 스마트하게 계획하세요
 
+<img width="2000" alt="image" src="https://github.com/user-attachments/assets/b2f85a18-5f0f-4d6d-9037-3b71de806053" />
+
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -28,10 +30,11 @@
 
 ### Frontend
 
-| <img src="https://github.com/identicons/gNswnd4dl" width="100"/> |
+| <img src="https://github.com/gNswnd4dl.png" width="100"/> |
 |:---:|
 | **김주옥** |
 | [@github](https://github.com/gNswnd4dl) |
+
 
 ---
 
@@ -64,16 +67,6 @@
 |:---:|:---:|
 | **Backend** | <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=white"/> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white"/> |
 | **Frontend** | <img src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white"/> |
-
----
-
-## Screenshots
-
-<!-- 스크린샷 추가 예정 -->
-<div align="center">
-  <img src="./assets/screenshot1.png" alt="Screenshot 1" width="400"/>
-  <img src="./assets/screenshot2.png" alt="Screenshot 2" width="400"/>
-</div>
 
 ---
 
