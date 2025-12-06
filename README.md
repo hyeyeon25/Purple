@@ -15,7 +15,7 @@
 [![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-</div>
+
 
 ---
 
@@ -59,6 +59,13 @@
 
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/a201e567-88e3-4a77-bf44-995c6bf5b68a" />
 
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/60cfeabe-64a5-417b-9011-46320bccb4b1" />
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/01f8652c-ee4e-4c3b-ae4d-880687f227f1" />
+
+
+
 ---
 
 ## Deployment
@@ -70,8 +77,7 @@
 
 ---
 
-<div align="center">
-
 **Made with by Team Purple**
+
 
 </div>
