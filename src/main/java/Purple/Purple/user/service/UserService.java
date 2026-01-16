@@ -69,7 +69,7 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getUserId(),
-                10 * 60 * 1000L);
+                10 * 60 * 10000L);
 
         String refreshToken = jwtUtil.createJwt(
                 "refresh",

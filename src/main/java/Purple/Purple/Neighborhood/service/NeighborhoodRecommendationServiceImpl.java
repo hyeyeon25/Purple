@@ -31,6 +31,7 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
     private final PlaceRepository placeRepository;
     private final PreferencesRepository preferencesRepository;
     private final ObjectMapper objectMapper;
+    private final Purple.Purple.place.service.PlaceService placeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -372,6 +373,25 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             pagedContent = Collections.emptyList();
         } else {
             pagedContent = sortedRecommendations.subList(startIndex, endIndex);
+        }
+
+        log.info("📋 페이지네이션 된 {}개 장소의 AI 요약 정보를 확인합니다...", pagedContent.size());
+
+        for (PlaceRecommendationResponseDto dto : pagedContent) {
+            try {
+                // 1. PlaceService를 통해 분석 데이터 가져오기 (DB 없으면 -> 파이썬 -> DB저장 -> 반환)
+                // dto.getPlaceName()을 넘겨서 이름으로 검색하게 합니다.
+                var analysis = placeService.getAnalysisData(dto.getPlaceId(), dto.getPlaceName());
+
+                // 2. 가져온 데이터가 있으면 DTO에 덮어씌우기
+                if (analysis != null) {
+                    dto.setSummary(analysis.getReviewSummary());
+                    // 필요하다면 키워드나 한줄평도 여기서 dto.setKeywords(...) 등으로 넣을 수 있음
+                }
+            } catch (Exception e) {
+                // 요약 하나 실패했다고 전체 에러 내지 말고, 로그만 찍고 넘어감 (사용자는 목록은 봐야 하니까)
+                log.warn("⚠️ 장소 ID {} 요약 로딩 실패: {}", dto.getPlaceId(), e.getMessage());
+            }
         }
 
         log.info("Recommended {} places in neighborhood {} (category: {}), page: {}/{}, total: {}",
