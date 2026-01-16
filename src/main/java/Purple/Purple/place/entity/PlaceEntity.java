@@ -77,4 +77,11 @@ public class PlaceEntity {
 
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PlaceSlot> availableSlots = new HashSet<>();
+
+
+    //1. mappedBy = "place": 실제 FK는 PlaceAnalysis 테이블에 있음 (현재 테이블 구조 영향 X)
+    // 2. CascadeType.ALL: 이 장소(Place)가 삭제되면 분석 데이터도 같이 삭제됨 (데이터 관리 자동화)
+    // 3. FetchType.LAZY: 상세 조회할 때만 분석 데이터를 가져옴 (평소 리스트 조회 시 성능 저하 방지)
+    @OneToOne(mappedBy = "place", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private PlaceAnalysisEntity placeAnalysis;
 }

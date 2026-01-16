@@ -1,7 +1,9 @@
 package Purple.Purple.place.service;
 
 import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
+import Purple.Purple.place.entity.PlaceAnalysisEntity;
 import Purple.Purple.Neighborhood.repository.NeighborhoodRepository;
+import Purple.Purple.place.repository.PlaceAnalysisRepository;
 import Purple.Purple.kakao.dto.KakaoApiClient;
 import Purple.Purple.kakao.dto.KakaoPlaceDocument;
 import Purple.Purple.kakao.dto.KakaoPlaceSearchResponse;
@@ -15,6 +17,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import org.springframework.web.util.UriComponentsBuilder;
+import java.net.URI;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +36,10 @@ public class PlaceServiceImpl implements PlaceService {
     private final PlaceMapper placeMapper;
     private final KakaoApiClient kakaoApiClient;
     private final NeighborhoodRepository neighborhoodRepository;
+
+    //파이썬 통신 및 분석 데이터 저장소 의존성 주입
+    private final PlaceAnalysisRepository placeAnalysisRepository;
+    private final RestTemplate restTemplate;
 
     @Override
     @Transactional
@@ -171,6 +182,66 @@ public class PlaceServiceImpl implements PlaceService {
         log.info("'{}' 장소 정보가 업데이트되었습니다.", updatedPlace.getPlaceName());
 
         return placeMapper.toResponseDto(updatedPlace);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW) // 새 트랜잭션 필수!
+    public PlaceAnalysisEntity getAnalysisData(Integer dbPlaceId, String placeName) {
+
+        // 1. 장소 조회
+        PlaceEntity place = placeRepository.findById(dbPlaceId)
+            .orElseThrow(() -> new EntityNotFoundException("장소를 찾을 수 없습니다 ID: " + dbPlaceId));
+
+        // 2. [수정됨] 이미 분석된 데이터가 있는지 확인
+        if (place.getPlaceAnalysis() != null) {
+
+            // ★★★ 여기가 핵심! (빠른 리턴 방지) ★★★
+            // 분석 데이터는 있는데, Place 테이블의 summary가 비어있다면? -> 지금 채워넣어라!
+            if (place.getSummary() == null || place.getSummary().isEmpty()) {
+                log.info("🔧 기존 분석 데이터는 있지만 요약이 비어있어 동기화합니다. (Place ID: {})", dbPlaceId);
+
+                // 아까 만든 '강제 업데이트 쿼리' 실행 (saveAndFlush 대신 이거 사용!)
+                placeRepository.updatePlaceSummary(dbPlaceId, place.getPlaceAnalysis().getReviewSummary());
+            }
+
+            return place.getPlaceAnalysis(); // 동기화 후 리턴!
+        }
+
+        // 3. 분석 데이터가 없으면 파이썬 호출 (기존 로직)
+        String address = place.getAddress();
+        log.info("🤖 파이썬에게 분석 요청: 이름='{}', 주소='{}'", placeName, address);
+
+        try {
+            // UriComponentsBuilder 사용 (한글 깨짐 방지)
+            URI uri = UriComponentsBuilder
+                .fromUriString("http://localhost:8000")
+                .path("/analyze")
+                .queryParam("db_place_id", dbPlaceId)
+                .queryParam("place_name", placeName)
+                .queryParam("address", address)
+                .encode()
+                .build()
+                .toUri();
+
+            restTemplate.getForEntity(uri, String.class);
+
+            // 4. 파이썬이 저장했으니, DB를 다시 조회해서 가져오기
+            PlaceAnalysisEntity analysis = placeAnalysisRepository.findByPlace_PlaceId(dbPlaceId)
+                .orElse(null);
+
+            // 5. [수정됨] 새로 받아온 데이터도 강제 저장
+            if (analysis != null) {
+                // 여기도 saveAndFlush 대신 강제 업데이트 쿼리 사용
+                placeRepository.updatePlaceSummary(dbPlaceId, analysis.getReviewSummary());
+                log.info("✅ Place 테이블 summary 강제 업데이트 완료");
+            }
+
+            return analysis;
+
+        } catch (Exception e) {
+            log.error("❌ 파이썬 호출 실패: {}", e.getMessage());
+            return null;
+        }
     }
 }
 

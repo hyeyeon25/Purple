@@ -39,3 +39,15 @@ out/
 .DS_Store
 Thumbs.db
 *.bin
+
+### Python AI Server ###
+# 가상환경 (용량 큼)
+ai-server/venv/
+ai-server/.venv/
+
+# 컴파일 캐시
+ai-server/__pycache__/
+
+
+ai-server/.env
+src/main/resources/application-dev.properties
