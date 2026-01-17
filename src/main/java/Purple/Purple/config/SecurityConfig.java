@@ -77,8 +77,8 @@ public class SecurityConfig {
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true); // 쿠키나 인증정보 포함 허용 (JWT 헤더도 가능)
-        configuration.setExposedHeaders(List.of("Authorization")); // 프론트에서 읽을 수 있게 노출할 헤더
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
