@@ -57,9 +57,6 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
             place.setTagVector(convertVectorToJson(normalizedVector));
             placeRepository.save(place);
 
-            log.info("Vectorization completed for place ID: {}. Tags: {}, Vector dimension: {}",
-                    placeId, tags, normalizedVector.size());
-
             return TagVectorizationResponseDto.builder()
                     .placeId(place.getPlaceId())
                     .placeName(place.getPlaceName())

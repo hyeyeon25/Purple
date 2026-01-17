@@ -36,34 +36,30 @@ public class PlaceServiceImpl implements PlaceService {
     private final PlaceMapper placeMapper;
     private final KakaoApiClient kakaoApiClient;
     private final NeighborhoodRepository neighborhoodRepository;
-
-    //파이썬 통신 및 분석 데이터 저장소 의존성 주입
     private final PlaceAnalysisRepository placeAnalysisRepository;
     private final RestTemplate restTemplate;
 
     @Override
     @Transactional
     public void fetchAllPlacesForCheonan() {
-        // API가 호출되었을 때, 동네 데이터가 없으면 즉시 생성합니다.
         if (neighborhoodRepository.count() == 0) {
             initializeNeighborhoods();
         }
 
-        // 검색할 카테고리 키워드 목록 정의
         List<String> keywords = Arrays.asList("음식점", "카페", "문화시설", "관광명소", "공원", "쇼핑");
 
-        // DB에서 모든 동네 정보 가져오기
         List<NeighborhoodEntity> neighborhoods = neighborhoodRepository.findAll();
 
         log.info("===== 천안시 전체 {}개 동네의 장소 데이터 저장을 시작합니다. =====", neighborhoods.size());
 
         for (NeighborhoodEntity neighborhood : neighborhoods) {
+            log.info("- '{}' 지역 데이터 수집을 시작합니다.", neighborhood.getNeighborhoodName());
+
+            boolean success = true; // 작업 성공 여부를 추적하는 플래그
+            int savedCount = 0; // 이번 작업으로 새로 저장된 장소의 수
+            int existCount = 0; // 기존 저장된 장소의 수
             for (String keyword : keywords) {
-                // [수정됨!] 각 작업의 시작을 명확하게 로그로 남깁니다.
-                log.info("- '{}' 지역 '{}' 카테고리 데이터 수집을 시작합니다.", neighborhood.getNeighborhoodName(), keyword);
-                boolean success = true; // 작업 성공 여부를 추적하는 플래그
                 int page = 1;
-                int savedCount = 0; // 이번 작업으로 새로 저장된 장소의 수
 
                 while (true) {
                     try {
@@ -73,7 +69,6 @@ public class PlaceServiceImpl implements PlaceService {
                                 neighborhood.getNeighborhoodLatitude(),
                                 2000,
                                 page);
-
                         if (response != null && response.getDocuments() != null) {
                             for (KakaoPlaceDocument doc : response.getDocuments()) {
                                 if (placeRepository.findByKakaoPlaceId(doc.getId()).isEmpty()) {
@@ -83,9 +78,11 @@ public class PlaceServiceImpl implements PlaceService {
                                         if (newPlace != null) {
                                             newPlace.setNeighborhood(neighborhood);
                                             placeRepository.save(newPlace);
-                                            savedCount++; // 저장 카운트 증가
+                                            savedCount++;
                                         }
                                     }
+                                } else {
+                                    existCount++;
                                 }
                             }
                         }
@@ -108,9 +105,9 @@ public class PlaceServiceImpl implements PlaceService {
                         break;
                     }
                 }
-                if (success) {
-                    log.info("- '{}' 지역 '{}' 카테고리 수집 완료 (신규 저장: {}건)", neighborhood.getNeighborhoodName(), keyword, savedCount);
-                }
+            }
+            if (success) {
+                log.info("- '{}' 지역 데이터 수집 완료 (기존 데이터 {}건, 신규 저장: {}건)", neighborhood.getNeighborhoodName(), existCount, savedCount);
             }
         }
         log.info("===== 천안시 전체 장소 데이터 저장이 완료되었습니다. =====");
@@ -239,7 +236,7 @@ public class PlaceServiceImpl implements PlaceService {
             return analysis;
 
         } catch (Exception e) {
-            log.error("❌ 파이썬 호출 실패: {}", e.getMessage());
+            log.error("파이썬 호출 실패: {}", e.getMessage());
             return null;
         }
     }
