@@ -26,10 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 동네 관련 API 컨트롤러
- */
-@Tag(name = "동네 추천 API", description = "사용자 선호도(태그) 기반 동네 및 장소 추천 API") //  API 그룹 설정
+@Tag(name = "동네 추천 API", description = "사용자 선호도(태그) 기반 동네 및 장소 추천 API")
 @RestController
 @RequestMapping("/api/v1/neighborhoods")
 @RequiredArgsConstructor
@@ -40,7 +37,6 @@ public class NeighborhoodController {
 
     /**
      * 사용자 ID 기반 동네 Top 3 추천 API
-     * 사용자의 저장된 선호도 벡터를 자동으로 조회하여 추천합니다.
      */
     @Operation(
             summary = "동네 Top 3 추천",
@@ -103,7 +99,6 @@ public class NeighborhoodController {
 
     /**
      * 사용자 ID 기반 특정 동네 내 장소 추천 API (카테고리 필터링, 페이지네이션)
-     * 사용자의 저장된 선호도 벡터를 자동으로 조회하여 추천합니다.
      */
     @Operation(summary = "특정 동네 내 장소 추천 (페이지네이션)", description = "사용자 ID를 기반으로 저장된 선호도 벡터를 자동으로 조회하여, 특정 동네 내에서 가장 유사한 장소 목록을 페이지 단위로 추천합니다.")
     @ApiResponses(value = {
