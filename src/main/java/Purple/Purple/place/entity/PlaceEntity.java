@@ -43,18 +43,6 @@ public class PlaceEntity {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
-    @Column(name = "open_time")
-    private LocalTime openTime;
-
-    @Column(name = "close_time")
-    private LocalTime closeTime;
-
-    @Column(name = "break_start_time")
-    private LocalTime breakStartTime;
-
-    @Column(name = "break_end_time")
-    private LocalTime breakEndTime;
-
     @Column(name = "is_indoor")
     private Boolean isIndoor;
 
