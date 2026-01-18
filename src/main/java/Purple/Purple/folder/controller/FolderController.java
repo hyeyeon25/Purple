@@ -1,6 +1,8 @@
 package Purple.Purple.folder.controller;
 
 import Purple.Purple.folder.dto.*;
+import Purple.Purple.folder.exception.FolderNotFoundException;
+import Purple.Purple.folder.exception.InvalidFolderRequestException;
 import Purple.Purple.folder.service.FolderService;
 import Purple.Purple.user.entity.UserPersonalInfo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -33,28 +36,30 @@ public class FolderController {
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
 		if (userPersonalInfo == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("error", "인증되지 않은 사용자입니다."));
 		}
 
 		try {
 			Long currentUserId = userPersonalInfo.getUserId();
 			log.info("폴더 생성 요청 - userId: {}, date: {}, neighborhoodId: {}, placeIds: {}", 
 					currentUserId, requestDto.getDate(), requestDto.getNeighborhoodId(), requestDto.getPlaceIds());
+
 			Integer id = folderService.createFolder(requestDto, currentUserId);
 			log.info("폴더 생성 성공 - folderId: {}, userId: {}", id, currentUserId);
+
 			return ResponseEntity.status(HttpStatus.CREATED).body(id);
-		} catch (IllegalArgumentException e) {
-			log.error("폴더 생성 실패 - IllegalArgumentException: userId: {}, error: {}", 
-					userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e.getMessage(), e);
-			// 비즈니스 로직 예외는 400 Bad Request로 반환
+
+		} catch (InvalidFolderRequestException e) {
+			log.error("폴더 생성 실패 - 잘못된 요청: userId: {}, error: {}",
+					userPersonalInfo.getUserId(), e.getMessage());
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-					.body(java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "잘못된 요청입니다."));
+					.body(Map.of("error", e.getMessage()));
+
 		} catch (Exception e) {
-			log.error("폴더 생성 중 예외 발생 - userId: {}, exception: {}", 
-					userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e.getClass().getName(), e);
-			// 기타 예외는 500 Internal Server Error로 반환
+			log.error("폴더 생성 중 예외 발생 - userId: {}", userPersonalInfo.getUserId(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(java.util.Map.of("error", "서버 내부 오류가 발생했습니다: " + e.getMessage()));
+					.body(Map.of("error", "서버 내부 오류가 발생했습니다: " + e.getMessage()));
 		}
 	}
 
@@ -73,26 +78,37 @@ public class FolderController {
 	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@ApiResponse(responseCode = "404", description = "폴더를 찾을 수 없음")
 	@GetMapping("/{folderId}")
-	public ResponseEntity<FolderDetailResponseDto> getFolder(
+	public ResponseEntity<?> getFolder(
 			@PathVariable Integer folderId,
 			@AuthenticationPrincipal UserPersonalInfo userPersonalInfo) {
 
 		if (userPersonalInfo == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("error", "인증되지 않은 사용자입니다."));
 		}
 
 		try {
 			Long currentUserId = userPersonalInfo.getUserId();
 			FolderDetailResponseDto dto = folderService.getFolderDetails(folderId, currentUserId);
 			return ResponseEntity.ok(dto);
-		} catch (IllegalArgumentException e) {
-			log.error("폴더 상세 조회 실패 - folderId: {}, userId: {}, error: {}", 
-					folderId, userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e.getMessage());
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+
+		} catch (FolderNotFoundException e) {
+			log.error("폴더 상세 조회 실패 - folderId: {}, userId: {}, error: {}",
+					folderId, userPersonalInfo.getUserId(), e.getMessage());
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("error", e.getMessage()));
+
+		} catch (InvalidFolderRequestException e) {
+			log.error("폴더 상세 조회 실패 - 잘못된 요청: folderId: {}, userId: {}, error: {}",
+					folderId, userPersonalInfo.getUserId(), e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(Map.of("error", e.getMessage()));
+
 		} catch (Exception e) {
 			log.error("폴더 상세 조회 중 예외 발생 - folderId: {}, userId: {}", 
-					folderId, userPersonalInfo != null ? userPersonalInfo.getUserId() : "null", e);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+					folderId, userPersonalInfo.getUserId(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("error", "서버 내부 오류가 발생했습니다."));
 		}
 	}
 
