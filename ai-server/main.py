@@ -232,16 +232,21 @@ def get_naver_reviews(place_name, address):
     print(f"   ❌ 크롤링 에러 발생: {e}")
     return []
   finally:
-    driver.quit()
+    try:
+      if driver:
+        driver.quit()
+    except:
+      pass
 
 # =========================================================
 #  2. GPT 요약 및 분석 함수
 # =========================================================
 def analyze_reviews_with_gpt(reviews):
   if not reviews:
+    print("   ⚠️ 분석할 리뷰가 없습니다.")
     return None
 
-  print("🤖 [2단계] GPT에게 분석 요청 중...")
+  print(f"🤖 [2단계] GPT에게 분석 요청 중... (리뷰 {len(reviews)}개)")
 
   full_text = "\n".join(reviews[:20])
 
@@ -264,14 +269,19 @@ def analyze_reviews_with_gpt(reviews):
           {"role": "system", "content": "JSON 포맷으로만 응답해."},
           {"role": "user", "content": prompt}
         ],
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
+        timeout=30  # 30초 타임아웃
     )
 
     result_json = response.choices[0].message.content
-    return json.loads(result_json)
+    parsed_result = json.loads(result_json)
+    print(f"   ✅ GPT 분석 완료")
+    return parsed_result
 
   except Exception as e:
     print(f"   ❌ GPT 오류: {e}")
+    import traceback
+    traceback.print_exc()
     return None
 
 # =========================================================
@@ -317,28 +327,58 @@ def save_to_db(place_id, ai_data):
 # =========================================================
 @app.get("/analyze")
 async def analyze_place(db_place_id: int, place_name: str, address: str):
-  # ★ 이제 자바가 'naver_place_id' 대신 'place_name'과 'address'를 줍니다.
-  print(f"\n🔔 [요청 도착] 자바가 분석을 요청했습니다!")
+  print(f"\n{'='*60}")
+  print(f"🔔 [요청 도착] 분석 시작")
   print(f"   - DB ID: {db_place_id}")
   print(f"   - 장소명: {place_name}")
   print(f"   - 주소: {address}")
+  print(f"{'='*60}")
 
-  # 1. 리뷰 수집 (이름과 주소 전달)
-  reviews = get_naver_reviews(place_name, address)
-  if not reviews:
-    raise HTTPException(status_code=404, detail="리뷰를 찾을 수 없거나 네이버 ID를 못 찾음")
+  try:
+    # 1. 리뷰 수집 (이름과 주소 전달)
+    reviews = get_naver_reviews(place_name, address)
+    if not reviews:
+      print(f"   ❌ 리뷰 수집 실패 - place_id: {db_place_id}")
+      raise HTTPException(
+        status_code=404,
+        detail=f"리뷰를 찾을 수 없거나 네이버 ID를 못 찾음: {place_name}"
+      )
 
-  # 2. AI 분석
-  ai_result = analyze_reviews_with_gpt(reviews)
-  if not ai_result:
-    raise HTTPException(status_code=500, detail="GPT 분석 실패")
+    # 2. AI 분석
+    ai_result = analyze_reviews_with_gpt(reviews)
+    if not ai_result:
+      print(f"   ❌ GPT 분석 실패 - place_id: {db_place_id}")
+      raise HTTPException(
+        status_code=500,
+        detail=f"GPT 분석 실패: {place_name}"
+      )
 
-  # 3. DB 저장
-  success = save_to_db(db_place_id, ai_result)
-  if not success:
-    raise HTTPException(status_code=500, detail="DB 저장 실패")
+    # 3. DB 저장
+    success = save_to_db(db_place_id, ai_result)
+    if not success:
+      print(f"   ❌ DB 저장 실패 - place_id: {db_place_id}")
+      raise HTTPException(
+        status_code=500,
+        detail=f"DB 저장 실패: {place_name}"
+      )
 
-  return {"result": "success", "message": "분석 완료 및 DB 저장 끝!"}
+    print(f"✅ [성공] place_id: {db_place_id} 분석 완료!\n")
+    return {
+      "result": "success",
+      "message": f"{place_name} 분석 완료 및 DB 저장 끝!",
+      "place_id": db_place_id
+    }
+
+  except HTTPException:
+    raise
+  except Exception as e:
+    print(f"   ❌ 예상치 못한 에러: {e}")
+    import traceback
+    traceback.print_exc()
+    raise HTTPException(
+      status_code=500,
+      detail=f"서버 내부 오류: {str(e)}"
+    )
 
 if __name__ == "__main__":
   print("🚀 파이썬 서버가 시작되었습니다! (http://localhost:8000)")
