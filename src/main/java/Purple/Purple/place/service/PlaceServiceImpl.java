@@ -55,7 +55,7 @@ public class PlaceServiceImpl implements PlaceService {
         for (NeighborhoodEntity neighborhood : neighborhoods) {
             log.info("- '{}' 지역 데이터 수집을 시작합니다.", neighborhood.getNeighborhoodName());
 
-            boolean success = true; // 작업 성공 여부를 추적하는 플래그
+            boolean success = true; // 작업 성공 여부
             int savedCount = 0; // 이번 작업으로 새로 저장된 장소의 수
             int existCount = 0; // 기존 저장된 장소의 수
             for (String keyword : keywords) {

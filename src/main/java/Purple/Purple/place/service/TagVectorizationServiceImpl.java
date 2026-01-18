@@ -254,9 +254,7 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
         return tags.stream().distinct().collect(Collectors.toList());
     }
 
-    /**
-     * 원-핫 인코딩으로 벡터 생성
-     */
+    // 원-핫 인코딩으로 벡터 생성
     private List<Double> generateVector(List<String> tags) {
         List<Double> vector = new ArrayList<>();
 
@@ -271,9 +269,7 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
         return vector;
     }
 
-    /**
-     * L2 정규화
-     */
+    // L2 정규화
     private List<Double> normalizeVector(List<Double> vector) {
         // L2 norm 계산
         double l2Norm = Math.sqrt(vector.stream()
@@ -291,9 +287,7 @@ public class TagVectorizationServiceImpl implements TagVectorizationService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 벡터를 JSON 문자열로 변환
-     */
+    // 벡터를 JSON 문자열로 변환
     private String convertVectorToJson(List<Double> vector) {
         try {
             return objectMapper.writeValueAsString(vector);
