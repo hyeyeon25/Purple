@@ -95,7 +95,7 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
         
-        // userId claim에서 가져오기
+        // userId claim에서 가져옴
         Object userIdObj = claims.get("userId");
         if (userIdObj != null) {
             if (userIdObj instanceof Long) {
@@ -107,7 +107,7 @@ public class JwtUtil {
             }
         }
         
-        // Subject에서 가져오기 (하위 호환성)
+        // Subject에서 가져옴
         String subject = claims.getSubject();
         if (subject != null && !subject.isEmpty()) {
             return Long.valueOf(subject);
