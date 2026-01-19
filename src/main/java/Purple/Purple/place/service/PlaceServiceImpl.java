@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Propagation;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -188,6 +189,10 @@ public class PlaceServiceImpl implements PlaceService {
      * @param placeName 장소 이름
      * @return PlaceAnalysisEntity 분석 결과 엔티티 (실패 시 null)
      */
+
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
+
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PlaceAnalysisEntity getAnalysisData(Integer dbPlaceId, String placeName) {
@@ -213,12 +218,12 @@ public class PlaceServiceImpl implements PlaceService {
 
         //분석 데이터 없을 시 파이썬 호출
         String address = place.getAddress();
-        log.info("파이썬에게 분석 요청: 이름='{}', 주소='{}'", placeName, address);
+        log.info("파이썬에게 분석 요청 (URL: {}): 이름='{}', 주소='{}'", aiServerUrl, placeName, address);
 
         try {
             // 한글 깨짐 방지 UriComponentsBuilder 사용
             URI uri = UriComponentsBuilder
-                .fromUriString("http://localhost:8000")
+                .fromUriString(aiServerUrl)
                 .path("/analyze")
                 .queryParam("db_place_id", dbPlaceId)
                 .queryParam("place_name", placeName)
