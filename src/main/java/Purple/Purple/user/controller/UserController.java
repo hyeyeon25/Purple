@@ -25,6 +25,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 유저 인증 및 관리 컨트롤러
+ * - 회원가입, 로그인, 로그아웃 관리 기능 제공함
+ */
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
@@ -33,6 +38,8 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
+
+    // 회원가입: 신규 유저 정보 저장 및 201(Created) 응답 반환
     @Operation(summary = "회원가입", description = "회원가입을 처리합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "회원가입 성공"),
@@ -44,7 +51,7 @@ public class UserController {
         UserResponse response = userService.signup(request);
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)                     // 201 Created
+                .status(HttpStatus.CREATED)
                 .body(response);
     }
 
@@ -60,11 +67,13 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "잘못된 인증 정보"),
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
+
+    // 로그인: 사용자 인증 후 Access Token(헤더) 및 Refresh Token(쿠키) 생성하여 전달
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletResponse response) {
         LoginResponse loginResponse = userService.login(req);
 
-        // UserService에서 생성한 refreshToken을 가져오기 위해 user 조회
+        // 유저 정보 조회 후 7일 유효기간의 Refresh Token 생성함
         UserPersonalInfo user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         
@@ -85,12 +94,10 @@ public class UserController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + loginResponse.getToken());
-        //headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-        //Map<String,String> body = Map.of("token", accessToken);
         return new ResponseEntity<>(loginResponse, headers, HttpStatus.OK);
     }
 
-
+    // 로그아웃: 본인 확인 후 성공 응답 반환함 (실제 토큰 무효화는 시큐리티 필터에서 수행)
     @Operation(summary = "로그아웃", description = "로그아웃을 처리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "로그아웃 성공"),
@@ -117,6 +124,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    // 회원탈퇴: 본인 인증 후 서비스 레이어 호출하여 유저 데이터 삭제
     @Operation(summary = "회원탈퇴", description = "회원 탈퇴를 처리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "회원탈퇴 성공"),
@@ -149,6 +157,7 @@ public class UserController {
         }
     }
 
+    // 정보조회: 로그인한 본인의 상세 유저 정보 조회함
     @Operation(summary = "사용자 정보 조회", description = "사용자 정보를 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -180,6 +189,7 @@ public class UserController {
         }
     }
 
+    // 정보수정: 닉네임 등 유저 프로필 업데이트 수행함
     @Operation(summary = "사용자 정보 수정", description = "사용자 정보를 수정합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
@@ -235,7 +245,7 @@ public class UserController {
 
 
 
-    // HTTP 헤더에서 토큰을 추출하는 헬퍼 메서드
+    // 토큰 파싱: Authorization 헤더에서 Bearer 제외한 토큰 문자열만 추출함
     private String resolveToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         return (bearer != null && bearer.startsWith("Bearer ")) ? bearer.substring(7) : null;

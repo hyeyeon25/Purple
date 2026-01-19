@@ -7,5 +7,4 @@ import java.util.Optional;
 
 public interface PreferencesRepository extends JpaRepository<PreferencesEntity, Long> {
     Optional<PreferencesEntity> findByUser_UserId(Long userId);
-    boolean existsByUser_UserId(Long userId);
 }

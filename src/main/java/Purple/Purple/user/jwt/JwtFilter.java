@@ -82,7 +82,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             } else {
-                // 다른 IllegalArgumentException은 비즈니스 로직 예외이므로 그대로 전파
                 throw e;
             }
         } catch (io.jsonwebtoken.JwtException e) {
@@ -90,22 +89,8 @@ public class JwtFilter extends OncePerRequestFilter {
             log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (ServletException | IOException e) {
-            // filterChain.doFilter() 내부에서 발생한 ServletException/IOException은 그대로 전파
-            // (이미 응답이 전송되었을 수 있음)
             throw e;
         }
-
-       /* CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);
-
-        Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-
-        filterChain.doFilter(request, response);
-
-        */
-
-
-
 
     }
 
