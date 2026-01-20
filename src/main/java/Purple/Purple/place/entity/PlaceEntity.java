@@ -4,6 +4,7 @@ import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
 import Purple.Purple.folder.PlaceSlot;
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -47,6 +48,7 @@ public class PlaceEntity {
     private Boolean isIndoor;
 
     @Column(name = "stay_duration_minutes")
+    @Builder.Default
     private Integer stayDurationMinutes = 60;
 
     @Column(name = "recommended_slot", length = 50)
@@ -58,6 +60,13 @@ public class PlaceEntity {
     @Column(name = "tag_vector", columnDefinition = "TEXT")
     private String tagVector;
 
+    @Column(name = "last_synced_at")
+    private LocalDateTime lastSyncedAt;
+
+    @Column(name = "is_closed")
+    @Builder.Default
+    private Boolean isClosed = false;
+
     // FK 매핑: Place → Neighborhood (N:1)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "neighborhood_id", nullable = false)
@@ -66,8 +75,7 @@ public class PlaceEntity {
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PlaceSlot> availableSlots = new HashSet<>();
 
-
-    //1. mappedBy = "place": 실제 FK는 PlaceAnalysis 테이블에 있음 (현재 테이블 구조 영향 X)
+    // 1. mappedBy = "place": 실제 FK는 PlaceAnalysis 테이블에 있음 (현재 테이블 구조 영향 X)
     // 2. CascadeType.ALL: 이 장소(Place)가 삭제되면 분석 데이터도 같이 삭제됨 (데이터 관리 자동화)
     // 3. FetchType.LAZY: 상세 조회할 때만 분석 데이터를 가져옴 (평소 리스트 조회 시 성능 저하 방지)
     @OneToOne(mappedBy = "place", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
