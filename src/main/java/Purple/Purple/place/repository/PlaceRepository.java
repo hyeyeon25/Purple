@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,5 +33,17 @@ public interface PlaceRepository extends JpaRepository<PlaceEntity, Integer> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE PlaceEntity p SET p.summary = :summary WHERE p.placeId = :placeId")
     void updatePlaceSummary(@Param("placeId") Integer placeId, @Param("summary") String summary);
+
+    /**
+     * 특정 동네에서 마지막 동기화 시간이 지정된 시간보다 이전인 장소들을 폐업 처리
+     *
+     * @param neighborhood 동네 엔티티
+     * @param syncTime     배치 시작 시간
+     * @return 업데이트된 레코드 수
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlaceEntity p SET p.isClosed = true WHERE p.neighborhood = :neighborhood AND (p.lastSyncedAt IS NULL OR p.lastSyncedAt < :syncTime) AND (p.isClosed IS NULL OR p.isClosed = false)")
+    int markClosedPlacesByNeighborhood(@Param("neighborhood") NeighborhoodEntity neighborhood,
+                                       @Param("syncTime") LocalDateTime syncTime);
 
 }
