@@ -20,14 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import org.springframework.web.util.UriComponentsBuilder;
-import java.net.URI;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Propagation;
 
+import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class PlaceServiceImpl implements PlaceService {
         LocalDateTime startTime = LocalDateTime.now();
         log.info("===== 배치 시작 시간: {} =====", startTime);
 
+        // 1. 동네 데이터가 없으면 초기화
         if (neighborhoodRepository.count() == 0) {
             initializeNeighborhoods();
         }
@@ -55,15 +58,18 @@ public class PlaceServiceImpl implements PlaceService {
         List<String> keywords = Arrays.asList("음식점", "카페", "문화시설", "관광명소", "공원", "쇼핑");
 
         List<NeighborhoodEntity> neighborhoods = neighborhoodRepository.findAll();
+        Map<String, NeighborhoodEntity> neighborhoodMap = neighborhoods.stream()
+                .collect(Collectors.toMap(NeighborhoodEntity::getNeighborhoodName, Function.identity()));
 
         log.info("===== 천안시 전체 {}개 동네의 장소 데이터 저장을 시작합니다. =====", neighborhoods.size());
 
+        // 3. 각 거점(좌표)을 순회하며 데이터 수집
         for (NeighborhoodEntity neighborhood : neighborhoods) {
-            log.info("- '{}' 지역 데이터 수집을 시작합니다.", neighborhood.getNeighborhoodName());
 
             boolean success = true; // 작업 성공 여부
             int savedCount = 0; // 이번 작업으로 새로 저장된 장소의 수
             int updatedCount = 0; // 이번 작업으로 업데이트된 장소의 수
+
             for (String keyword : keywords) {
                 int page = 1;
 
@@ -75,47 +81,57 @@ public class PlaceServiceImpl implements PlaceService {
                                 neighborhood.getNeighborhoodLatitude(),
                                 2000,
                                 page);
-                        if (response != null && response.getDocuments() != null) {
-                            for (KakaoPlaceDocument doc : response.getDocuments()) {
-                                var existingPlace = placeRepository.findByKakaoPlaceId(doc.getId());
-                                if (existingPlace.isEmpty()) {
-                                    // 신규 장소 저장
-                                    PlaceCreateDto createDto = placeMapper.toPlaceCreateDto(doc,
-                                            neighborhood.getNeighborhoodId());
-                                    if (createDto != null) {
-                                        PlaceEntity newPlace = placeMapper.toEntity(createDto);
-                                        if (newPlace != null) {
-                                            newPlace.setNeighborhood(neighborhood);
-                                            newPlace.setLastSyncedAt(startTime);
-                                            newPlace.setIsClosed(false);
-                                            placeRepository.save(newPlace);
-                                            savedCount++;
-                                        }
+
+                        if (response == null || response.getDocuments() == null) {
+                            break;
+                        }
+
+                        for (KakaoPlaceDocument doc : response.getDocuments()) {
+                            updatedCount++;
+
+                            // API 결과의 지번 주소를 파싱하여 우리가 관리하는 동네인지 확인
+                            String detectedNeighborhoodName = extractNeighborhoodFromAddress(doc.getAddressName());
+
+                            // 우리가 관리하는 동네 리스트에 없는 지역이면 저장 X
+                            if (detectedNeighborhoodName == null || !neighborhoodMap.containsKey(detectedNeighborhoodName)) {
+                                continue;
+                            }
+
+                            NeighborhoodEntity targetNeighborhood = neighborhoodMap.get(detectedNeighborhoodName);
+
+                            // 저장 로직
+                            var existingPlace = placeRepository.findByKakaoPlaceId(doc.getId());
+                            if (existingPlace.isEmpty()) {
+                                PlaceCreateDto createDto = placeMapper.toPlaceCreateDto(doc, targetNeighborhood.getNeighborhoodId());
+                                if (createDto != null) {
+                                    PlaceEntity newPlace = placeMapper.toEntity(createDto);
+                                    if (newPlace != null) {
+                                        newPlace.setNeighborhood(targetNeighborhood);
+                                        newPlace.setLastSyncedAt(startTime);
+                                        newPlace.setIsClosed(false);
+                                        placeRepository.save(newPlace);
+                                        savedCount++;
                                     }
-                                } else {
-                                    // 기존 장소 동기화 시간 업데이트
-                                    PlaceEntity place = existingPlace.get();
-                                    place.setLastSyncedAt(startTime);
-                                    place.setIsClosed(false); // API에서 조회되면 영업 중으로 복구
-                                    placeRepository.save(place);
-                                    updatedCount++;
                                 }
+                            } else {
+                                // 기존 장소 업데이트
+                                PlaceEntity place = existingPlace.get();
+                                // 혹시 기존에 잘못된 동네로 분류되어 있었다면 수정
+                                if (!place.getNeighborhood().getNeighborhoodId().equals(targetNeighborhood.getNeighborhoodId())) {
+                                    place.setNeighborhood(targetNeighborhood);
+                                }
+                                place.setLastSyncedAt(startTime);
+                                place.setIsClosed(false);
+                                placeRepository.save(place);
                             }
                         }
 
-                        if (response == null || response.getMeta() == null || response.getMeta().getIsEnd()) {
+                        if (response.getMeta() == null || response.getMeta().getIsEnd()) {
                             break;
                         }
                         page++;
+                        Thread.sleep(100); // API 부하 조절
 
-                        Thread.sleep(150);
-
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        log.error("- '{}' 지역 '{}' 카테고리 수집 실패: {}", neighborhood.getNeighborhoodName(), keyword,
-                                "API 호출 대기 중 에러 발생");
-                        success = false;
-                        break;
                     } catch (Exception e) {
                         log.error("- '{}' 지역 '{}' 카테고리 수집 실패: {}", neighborhood.getNeighborhoodName(), keyword,
                                 e.getMessage());
@@ -136,66 +152,73 @@ public class PlaceServiceImpl implements PlaceService {
                         neighborhood.getNeighborhoodName(), updatedCount, savedCount, closedCount);
             }
         }
-        log.info("===== 천안시 전체 장소 데이터 저장이 완료되었습니다. =====");
+    }
+
+    /**
+     * 주소 문자열에서 '동/읍/면' 이름을 추출하는 헬퍼 메서드
+     * 예: "충남 천안시 동남구 신부동 123" -> "신부동"
+     */
+    private String extractNeighborhoodFromAddress(String addressName) {
+        if (addressName == null || addressName.isEmpty()) {
+            return null;
+        }
+
+        // 공백으로 분리
+        String[] tokens = addressName.split(" ");
+        for (String token : tokens) {
+            // '동', '읍', '면'으로 끝나는 단어 찾기
+            if (token.endsWith("동") || token.endsWith("읍") || token.endsWith("면")) {
+                return token;
+            }
+        }
+        return null;
     }
 
     private void initializeNeighborhoods() {
         log.info("Neighborhood 테이블이 비어있습니다. 천안시 동네 데이터를 초기화합니다.");
         List<NeighborhoodEntity> cheonanNeighborhoods = Arrays.asList(
-                NeighborhoodEntity.builder().neighborhoodName("신부동").neighborhoodLatitude(36.8184)
-                        .neighborhoodLongitude(127.1528).build(),
-                NeighborhoodEntity.builder().neighborhoodName("안서동").neighborhoodLatitude(36.8333)
-                        .neighborhoodLongitude(127.1793).build(),
-                NeighborhoodEntity.builder().neighborhoodName("봉명동").neighborhoodLatitude(36.8078)
-                        .neighborhoodLongitude(127.1354).build(),
-                NeighborhoodEntity.builder().neighborhoodName("일봉동").neighborhoodLatitude(36.7972)
-                        .neighborhoodLongitude(127.1396).build(),
-                NeighborhoodEntity.builder().neighborhoodName("신방동").neighborhoodLatitude(36.7858)
-                        .neighborhoodLongitude(127.1283).build(),
-                NeighborhoodEntity.builder().neighborhoodName("청룡동").neighborhoodLatitude(36.7819)
-                        .neighborhoodLongitude(127.1558).build(),
-                NeighborhoodEntity.builder().neighborhoodName("원성동").neighborhoodLatitude(36.8105)
-                        .neighborhoodLongitude(127.1568).build(),
-                NeighborhoodEntity.builder().neighborhoodName("문성동").neighborhoodLatitude(36.8122)
-                        .neighborhoodLongitude(127.1465).build(),
-                NeighborhoodEntity.builder().neighborhoodName("중앙동").neighborhoodLatitude(36.8093)
-                        .neighborhoodLongitude(127.1461).build(),
-                NeighborhoodEntity.builder().neighborhoodName("목천읍").neighborhoodLatitude(36.7725)
-                        .neighborhoodLongitude(127.2342).build(),
-                NeighborhoodEntity.builder().neighborhoodName("풍세면").neighborhoodLatitude(36.7261)
-                        .neighborhoodLongitude(127.1008).build(),
-                NeighborhoodEntity.builder().neighborhoodName("광덕면").neighborhoodLatitude(36.6917)
-                        .neighborhoodLongitude(127.1697).build(),
-                NeighborhoodEntity.builder().neighborhoodName("북면").neighborhoodLatitude(36.8778)
-                        .neighborhoodLongitude(127.2889).build(),
-                NeighborhoodEntity.builder().neighborhoodName("성남면").neighborhoodLatitude(36.8167)
-                        .neighborhoodLongitude(127.2428).build(),
-                NeighborhoodEntity.builder().neighborhoodName("수신면").neighborhoodLatitude(36.8525)
-                        .neighborhoodLongitude(127.3200).build(),
-                NeighborhoodEntity.builder().neighborhoodName("병천면").neighborhoodLatitude(36.8833)
-                        .neighborhoodLongitude(127.2833).build(),
-                NeighborhoodEntity.builder().neighborhoodName("동면").neighborhoodLatitude(36.8525)
-                        .neighborhoodLongitude(127.2589).build(),
-                NeighborhoodEntity.builder().neighborhoodName("성정동").neighborhoodLatitude(36.8189)
-                        .neighborhoodLongitude(127.1328).build(),
-                NeighborhoodEntity.builder().neighborhoodName("쌍용동").neighborhoodLatitude(36.7947)
-                        .neighborhoodLongitude(127.1175).build(),
-                NeighborhoodEntity.builder().neighborhoodName("불당동").neighborhoodLatitude(36.8151)
-                        .neighborhoodLongitude(127.1139).build(),
-                NeighborhoodEntity.builder().neighborhoodName("두정동").neighborhoodLatitude(36.8339)
-                        .neighborhoodLongitude(127.1428).build(),
-                NeighborhoodEntity.builder().neighborhoodName("부성동").neighborhoodLatitude(36.8481)
-                        .neighborhoodLongitude(127.1225).build(),
-                NeighborhoodEntity.builder().neighborhoodName("백석동").neighborhoodLatitude(36.8228)
-                        .neighborhoodLongitude(127.1189).build(),
-                NeighborhoodEntity.builder().neighborhoodName("성환읍").neighborhoodLatitude(36.9189)
-                        .neighborhoodLongitude(127.1264).build(),
-                NeighborhoodEntity.builder().neighborhoodName("성거읍").neighborhoodLatitude(36.8844)
-                        .neighborhoodLongitude(127.1583).build(),
-                NeighborhoodEntity.builder().neighborhoodName("직산읍").neighborhoodLatitude(36.8789)
-                        .neighborhoodLongitude(127.1158).build(),
-                NeighborhoodEntity.builder().neighborhoodName("입장면").neighborhoodLatitude(36.9119)
-                        .neighborhoodLongitude(127.2514).build());
+                NeighborhoodEntity.builder().neighborhoodName("신부동").neighborhoodLatitude(36.8184).neighborhoodLongitude(127.1528).build(),
+                NeighborhoodEntity.builder().neighborhoodName("안서동").neighborhoodLatitude(36.8333).neighborhoodLongitude(127.1793).build(),
+                NeighborhoodEntity.builder().neighborhoodName("원성동").neighborhoodLatitude(36.8105).neighborhoodLongitude(127.1568).build(),
+                NeighborhoodEntity.builder().neighborhoodName("유량동").neighborhoodLatitude(36.8230).neighborhoodLongitude(127.1680).build(),
+                NeighborhoodEntity.builder().neighborhoodName("대흥동").neighborhoodLatitude(36.8100).neighborhoodLongitude(127.1460).build(),
+                NeighborhoodEntity.builder().neighborhoodName("문화동").neighborhoodLatitude(36.8120).neighborhoodLongitude(127.1480).build(),
+                NeighborhoodEntity.builder().neighborhoodName("성황동").neighborhoodLatitude(36.8160).neighborhoodLongitude(127.1490).build(),
+                NeighborhoodEntity.builder().neighborhoodName("오룡동").neighborhoodLatitude(36.8080).neighborhoodLongitude(127.1500).build(),
+                NeighborhoodEntity.builder().neighborhoodName("사직동").neighborhoodLatitude(36.8050).neighborhoodLongitude(127.1480).build(),
+                NeighborhoodEntity.builder().neighborhoodName("영성동").neighborhoodLatitude(36.8070).neighborhoodLongitude(127.1520).build(),
+                NeighborhoodEntity.builder().neighborhoodName("청당동").neighborhoodLatitude(36.7870).neighborhoodLongitude(127.1520).build(),
+                NeighborhoodEntity.builder().neighborhoodName("청수동").neighborhoodLatitude(36.7920).neighborhoodLongitude(127.1450).build(),
+                NeighborhoodEntity.builder().neighborhoodName("삼룡동").neighborhoodLatitude(36.7820).neighborhoodLongitude(127.1650).build(),
+                NeighborhoodEntity.builder().neighborhoodName("구성동").neighborhoodLatitude(36.8020).neighborhoodLongitude(127.1600).build(),
+                NeighborhoodEntity.builder().neighborhoodName("구룡동").neighborhoodLatitude(36.7720).neighborhoodLongitude(127.1430).build(),
+                NeighborhoodEntity.builder().neighborhoodName("봉명동").neighborhoodLatitude(36.8078).neighborhoodLongitude(127.1354).build(),
+                NeighborhoodEntity.builder().neighborhoodName("다가동").neighborhoodLatitude(36.8020).neighborhoodLongitude(127.1380).build(),
+                NeighborhoodEntity.builder().neighborhoodName("용곡동").neighborhoodLatitude(36.7880).neighborhoodLongitude(127.1350).build(),
+                NeighborhoodEntity.builder().neighborhoodName("신방동").neighborhoodLatitude(36.7858).neighborhoodLongitude(127.1283).build(),
+                NeighborhoodEntity.builder().neighborhoodName("불당동").neighborhoodLatitude(36.8151).neighborhoodLongitude(127.1139).build(),
+                NeighborhoodEntity.builder().neighborhoodName("백석동").neighborhoodLatitude(36.8228).neighborhoodLongitude(127.1189).build(),
+                NeighborhoodEntity.builder().neighborhoodName("두정동").neighborhoodLatitude(36.8339).neighborhoodLongitude(127.1428).build(),
+                NeighborhoodEntity.builder().neighborhoodName("성정동").neighborhoodLatitude(36.8189).neighborhoodLongitude(127.1328).build(),
+                NeighborhoodEntity.builder().neighborhoodName("쌍용동").neighborhoodLatitude(36.7947).neighborhoodLongitude(127.1175).build(),
+                NeighborhoodEntity.builder().neighborhoodName("부대동").neighborhoodLatitude(36.8550).neighborhoodLongitude(127.1300).build(),
+                NeighborhoodEntity.builder().neighborhoodName("신당동").neighborhoodLatitude(36.8600).neighborhoodLongitude(127.1200).build(),
+                NeighborhoodEntity.builder().neighborhoodName("업성동").neighborhoodLatitude(36.8500).neighborhoodLongitude(127.1150).build(),
+                NeighborhoodEntity.builder().neighborhoodName("차암동").neighborhoodLatitude(36.8370).neighborhoodLongitude(127.1020).build(),
+                NeighborhoodEntity.builder().neighborhoodName("목천읍").neighborhoodLatitude(36.7725).neighborhoodLongitude(127.2342).build(),
+                NeighborhoodEntity.builder().neighborhoodName("풍세면").neighborhoodLatitude(36.7261).neighborhoodLongitude(127.1008).build(),
+                NeighborhoodEntity.builder().neighborhoodName("광덕면").neighborhoodLatitude(36.6917).neighborhoodLongitude(127.1697).build(),
+                NeighborhoodEntity.builder().neighborhoodName("북면").neighborhoodLatitude(36.8778).neighborhoodLongitude(127.2889).build(),
+                NeighborhoodEntity.builder().neighborhoodName("성남면").neighborhoodLatitude(36.8167).neighborhoodLongitude(127.2428).build(),
+                NeighborhoodEntity.builder().neighborhoodName("수신면").neighborhoodLatitude(36.8525).neighborhoodLongitude(127.3200).build(),
+                NeighborhoodEntity.builder().neighborhoodName("병천면").neighborhoodLatitude(36.8833).neighborhoodLongitude(127.2833).build(),
+                NeighborhoodEntity.builder().neighborhoodName("동면").neighborhoodLatitude(36.8525).neighborhoodLongitude(127.2589).build(),
+                NeighborhoodEntity.builder().neighborhoodName("성환읍").neighborhoodLatitude(36.9189).neighborhoodLongitude(127.1264).build(),
+                NeighborhoodEntity.builder().neighborhoodName("성거읍").neighborhoodLatitude(36.8844).neighborhoodLongitude(127.1583).build(),
+                NeighborhoodEntity.builder().neighborhoodName("직산읍").neighborhoodLatitude(36.8789).neighborhoodLongitude(127.1158).build(),
+                NeighborhoodEntity.builder().neighborhoodName("입장면").neighborhoodLatitude(36.9119).neighborhoodLongitude(127.2514).build()
+        );
+
         neighborhoodRepository.saveAll(cheonanNeighborhoods);
         log.info("총 {}개의 천안시 동네 데이터 초기화를 완료했습니다.", cheonanNeighborhoods.size());
     }

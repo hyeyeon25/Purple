@@ -4,7 +4,6 @@ import Purple.Purple.common.constants.TagDictionary;
 import Purple.Purple.Neighborhood.dto.NeighborhoodRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.PagedPlaceRecommendationResponseDto;
 import Purple.Purple.Neighborhood.dto.PlaceRecommendationResponseDto;
-import Purple.Purple.Neighborhood.dto.UserPreferenceRequestDto;
 import Purple.Purple.Neighborhood.entity.NeighborhoodEntity;
 import Purple.Purple.Neighborhood.repository.NeighborhoodRepository;
 import Purple.Purple.place.entity.PlaceEntity;
@@ -32,11 +31,11 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
     private final PreferencesRepository preferencesRepository;
     private final ObjectMapper objectMapper;
     private final Purple.Purple.place.service.PlaceService placeService;
+    private static final int MIN_PLACES_FOR_RECOMMENDATION = 100;
 
     @Override
     @Transactional(readOnly = true)
     public List<NeighborhoodRecommendationResponseDto> recommendTop3NeighborhoodsByUserId(Long userId) {
-        log.info("Starting neighborhood recommendation for userId: {}", userId);
 
         // 1. 사용자 선호도 벡터 조회
         PreferencesEntity preferences = preferencesRepository.findByUser_UserId(userId)
@@ -54,7 +53,6 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             throw new RuntimeException("사용자 벡터 파싱 중 오류가 발생했습니다.", e);
         }
 
-        log.debug("User preference vector loaded: {}", normalizedUserVector);
 
         // 3. 동네 추천 로직 실행
         return recommendNeighborhoodsWithVector(normalizedUserVector);
@@ -118,23 +116,18 @@ public class NeighborhoodRecommendationServiceImpl implements NeighborhoodRecomm
             // 해당 동네의 모든 장소 조회
             List<PlaceEntity> places = placeRepository.findByNeighborhood(neighborhood);
 
-            if (places.isEmpty()) {
-                log.debug("Neighborhood {} (ID: {}) has no places, skipping", 
-                        neighborhood.getNeighborhoodName(), neighborhood.getNeighborhoodId());
-                neighborhoodsWithNoPlaces++;
+            if (places.size() < MIN_PLACES_FOR_RECOMMENDATION) {
+                log.debug("{}은 장소가 너무 적어 스킵합니다 (Count: {})",
+                        neighborhood.getNeighborhoodName(), places.size());
                 continue;
             }
-
-            log.debug("Neighborhood {} (ID: {}) has {} places", 
-                    neighborhood.getNeighborhoodName(), neighborhood.getNeighborhoodId(), places.size());
-
             // 각 장소와의 코사인 유사도 계산
             List<Double> similarityScores = new ArrayList<>();
             int placesWithNoTagVector = 0;
             
             for (PlaceEntity place : places) {
                 if (place.getTagVector() == null || place.getTagVector().isEmpty()) {
-                    log.debug("Place {} (ID: {}) has no tag vector, skipping", 
+                    log.debug("{} (ID: {})은 태그가 없어서 스킵합니다",
                             place.getPlaceName(), place.getPlaceId());
                     placesWithNoTagVector++;
                     continue;
